@@ -237,18 +237,6 @@ namespace HeadApparelTweaker
                     HeadgearDisplayType.Add(x.defName, a);
                 }
             }
-            if (HeadgearDisplayType.NullOrEmpty())
-            {
-                return;
-            }
-            List<string> list = HeadgearDisplayType.Keys.ToList();
-            for (int x = 0; x < list.Count; x++)
-            {
-                if (DefDatabase<ThingDef>.GetNamedSilentFail(list[x]) == null)
-                {
-                    HeadgearDisplayType.Remove(list[x]);
-                }
-            }
         }
     }
     [StaticConstructorOnStartup]
@@ -333,7 +321,7 @@ namespace HeadApparelTweaker
             }
             foreach (string x in HATweakerCache.HeadApparelUnderHair)
             {
-                if (DefDatabase<ThingDef>.GetNamedSilentFail(x).IsApparel)
+                if (DefDatabase<ThingDef>.GetNamedSilentFail(x)!=null&&DefDatabase<ThingDef>.GetNamedSilentFail(x).IsApparel)
                 {
                     DefDatabase<ThingDef>.GetNamedSilentFail(x).apparel.forceRenderUnderHair = true;
                 }
@@ -347,7 +335,7 @@ namespace HeadApparelTweaker
             }
             foreach (string x in HATweakerCache.HeadApparelAboveHair)
             {
-                if (DefDatabase<ThingDef>.GetNamedSilentFail(x).IsApparel)
+                if (DefDatabase<ThingDef>.GetNamedSilentFail(x) != null&&DefDatabase<ThingDef>.GetNamedSilentFail(x).IsApparel)
                 {
                     DefDatabase<ThingDef>.GetNamedSilentFail(x).apparel.forceRenderUnderHair = false;
                 }
@@ -375,6 +363,8 @@ namespace HeadApparelTweaker
                 {
 
                     yield return CodeInstructionExtensions.MoveLabelsFrom(new CodeInstruction(OpCodes.Ldarg_0), list[a]);
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldfld,AccessTools.Field(typeof(PawnRenderer),"pawn"));
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), nameof(CanHairDisplay)));
                     x += 1;
                 }
@@ -385,8 +375,16 @@ namespace HeadApparelTweaker
             }
             yield return list.LastOrDefault();
         }
-        public static bool CanHairDisplay(PawnRenderer renderer)
+        public static bool CanHairDisplay(PawnRenderer renderer, Pawn pawn)
         {
+            if (pawn==null)
+            {
+                return false;
+            }
+            if (pawn.Dead)
+            {
+                return false;
+            }
             if (renderer.graphics.apparelGraphics.
                 Any(x => !HATweakerCache.HeadApparelNoHair.NullOrEmpty() && HATweakerCache.HeadApparelNoHair.Contains(x.sourceApparel.def.defName)))
             {
@@ -501,8 +499,17 @@ namespace HeadApparelTweaker
                 }
             }
 
-            public static void CanCEDrawHair(ref PawnRenderer renderer, ref bool shouldRenderHair)
+            public static void CanCEDrawHair(ref PawnRenderer renderer,ref Pawn pawn, ref bool shouldRenderHair)
             {
+                if (pawn == null)
+                {
+                    shouldRenderHair = false;
+                }else 
+                if (pawn.Dead)
+                {
+                    shouldRenderHair = false;
+                }
+                else
                 if (renderer.graphics.apparelGraphics.
                 Any(x => !HATweakerCache.HeadApparelNoHair.NullOrEmpty() && HATweakerCache.HeadApparelNoHair.Contains(x.sourceApparel.def.defName)))
                 {
