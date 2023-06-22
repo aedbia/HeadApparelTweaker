@@ -381,7 +381,7 @@ namespace HeadApparelTweaker
             {
                 return false;
             }
-            if (pawn.Dead)
+            if (!pawn.health.hediffSet.HasHead || pawn.ageTracker.CurLifeStage == LifeStageDefOf.HumanlikeBaby)
             {
                 return false;
             }
@@ -504,8 +504,10 @@ namespace HeadApparelTweaker
                 if (pawn == null)
                 {
                     shouldRenderHair = false;
-                }else 
-                if (pawn.Dead)
+                }
+                else
+                    
+                if (!pawn.health.hediffSet.HasHead||pawn.ageTracker.CurLifeStage == LifeStageDefOf.HumanlikeBaby)
                 {
                     shouldRenderHair = false;
                 }
