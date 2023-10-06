@@ -7,7 +7,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 using Verse;
-using Verse.Sound;
 
 namespace HeadApparelTweaker
 {
@@ -17,21 +16,11 @@ namespace HeadApparelTweaker
         private Vector2 loc = Vector2.zero;
         private static string search = "";
         private static int IndexCount = 0;
-        private static bool HideMode = false;
+        private static string choose = "";
         internal static int IndexOfVEF = -1;
+        private static Dictionary<string, int> origin = new Dictionary<string, int>();
 
-        private static GUIStyle RightAlignment = new GUIStyle(Text.CurTextAreaReadOnlyStyle)
-        {
-            alignment = TextAnchor.MiddleRight
-        };
-        /*{
-            get
-            {
-                GUIStyle x = Text.CurTextAreaReadOnlyStyle;
-                x.alignment = TextAnchor.MiddleCenter;
-                return x;
-            }
-        }*/
+
         public HATweakerMod(ModContentPack content) : base(content)
         {
             setting = GetSettings<HATweakerSetting>();
@@ -74,7 +63,6 @@ namespace HeadApparelTweaker
         }
 
 
-
         public override void DoSettingsWindowContents(Rect inRect)
         {
             HATweakerSetting.HeadApparelDataInitialize();
@@ -83,27 +71,24 @@ namespace HeadApparelTweaker
                 return;
             }
             List<string> list = HATweakerSetting.HeadgearDisplayType.Keys.ToList();
+            if (choose.NullOrEmpty())
+            {
+                choose = list.First();
+            }
 
             //Search Tool;
             Listing_Standard ls1 = new Listing_Standard();
-            ls1.Begin(inRect.TopPart(0.05f).LeftPart(0.48f));
+            ls1.Begin(inRect.TopPart(0.05f));
             search = ls1.TextEntry(search);
             ls1.End();
 
-            //Boundary Switch;
-            Listing_Standard ls2 = new Listing_Standard();
-            ls2.Begin(inRect.TopPart(0.05f).RightPart(0.48f));
-            ls2.CheckboxLabeled("Hide_Mode".Translate(), ref HideMode);
-            ls2.End();
-
             //Initialized ScrollView Data;
             float LabelHeigh = 30f;
-            Rect outRect = inRect.BottomPart(0.95f).TopPart(0.9f);
+            Rect outRect = inRect.BottomPart(0.95f).TopPart(0.9f).LeftPart(0.3f);
             Widgets.DrawWindowBackground(outRect);
             Rect viewRect = new Rect(-3f, -3f, outRect.width - 26f, (LabelHeigh + 5f) * IndexCount + 3f);
-            Rect rect1 = new Rect(LabelHeigh + 5f, 0f, 150f, LabelHeigh);
+            Rect rect1 = new Rect(LabelHeigh + 5f, 0f, outRect.width - 60f, LabelHeigh);
             Rect rect2 = new Rect(0f, 0f, LabelHeigh, LabelHeigh);
-            Rect rect3 = new Rect(rect1.x + rect1.width, 0f, (HideMode ? 8 : 4) * LabelHeigh, LabelHeigh);
             Widgets.BeginScrollView(outRect, ref this.loc, viewRect, true);
             int se = 0;
 
@@ -113,95 +98,101 @@ namespace HeadApparelTweaker
                 ThingDef x = DefDatabase<ThingDef>.GetNamedSilentFail(c);
                 if (x != null && x.label.IndexOf(search) != -1)
                 {
-                    HATweakerSetting.HATSettingData data = HATweakerSetting.HeadgearDisplayType[c];
-                    if (!HideMode || data.DisplayTypeInt != 0)
+                    origin.SetOrAdd(c, x.IsApparel && x.apparel.forceRenderUnderHair ? 2 : 3);
+                    se++;
+                    if (Mouse.IsOver(rect1))
                     {
-                        se++;
-                        rect1.y += 5f;
-
-                        Widgets.Label(rect1, x.label);
-                        Widgets.DrawBox(rect2);
-                        GUI.DrawTexture(rect2, x.uiIcon);
-
-                        Widgets.DrawLineVertical(rect3.x - 5f, rect3.y, rect3.height);
-
-                        if (Mouse.IsOver(rect3))
-                        {
-                            Widgets.DrawHighlight(rect3);
-                        }
-                        if (HideMode)
-                        {
-                            HATweakerUtility.CheckboxLabeled(rect3, "Hide_Under_Roof".Translate(), ref HATweakerSetting.HeadgearDisplayType[c].HideUnderRoof, RightAlignment);
-                        }
-                        else
-                        if (HATweakerUtility.RadioButtonLabeled(rect3, "No_Graphic".Translate(), data.DisplayTypeInt == 0, RightAlignment))
-                        {
-                            HATweakerSetting.HeadgearDisplayType[c].DisplayTypeInt = 0;
-                        }
-                        Rect rect4 = rect3;
-                        rect4.x += rect3.width + 10f;
-                        if (Mouse.IsOver(rect4))
-                        {
-                            Widgets.DrawHighlight(rect4);
-                        }
-                        if (HideMode)
-                        {
-                            HATweakerUtility.CheckboxLabeled(rect4, "Hide_No_Fight".Translate(), ref HATweakerSetting.HeadgearDisplayType[c].HideNoFight, RightAlignment);
-                        }
-                        else
-                        {
-                            if (HATweakerUtility.RadioButtonLabeled(rect4, "No_Hair".Translate(), data.DisplayTypeInt == 1, RightAlignment))
-                            {
-                                HATweakerSetting.HeadgearDisplayType[c].DisplayTypeInt = 1;
-                            }
-                            Rect rect5 = rect4;
-                            rect5.x += rect4.width + 10f;
-                            if (Mouse.IsOver(rect5))
-                            {
-                                Widgets.DrawHighlight(rect5);
-                            }
-                            Widgets.DrawLineVertical(rect5.x + rect5.width + 5f, rect5.y, rect5.height);
-                            if (HATweakerUtility.RadioButtonLabeled(rect5, "Show_Hair".Translate(), data.DisplayTypeInt >= 2, RightAlignment))
-                            {
-                                int a = x.IsApparel && x.apparel.forceRenderUnderHair ? 2 : 3;
-                                HATweakerSetting.HeadgearDisplayType[c].DisplayTypeInt = a;
-                            }
-                            if (data.DisplayTypeInt >= 2 && (IndexOfVEF == -1 || HATweakerSetting.CloseVEFDraw))
-                            {
-                                Rect rect6 = rect5;
-                                rect6.x += rect5.width + 10f;
-                                if (Mouse.IsOver(rect6))
-                                {
-                                    Widgets.DrawHighlight(rect6);
-                                }
-                                Widgets.DrawLineVertical(rect6.x - 5f, rect6.y, rect6.height);
-                                if (HATweakerUtility.RadioButtonLabeled(rect6, "Under_Hair".Translate(), data.DisplayTypeInt == 2, RightAlignment))
-                                {
-                                    HATweakerSetting.HeadgearDisplayType[c].DisplayTypeInt = 2;
-                                }
-                                Rect rect7 = rect6;
-                                rect7.x += rect6.width + 10f;
-                                if (Mouse.IsOver(rect7))
-                                {
-                                    Widgets.DrawHighlight(rect7);
-                                }
-                                Widgets.DrawLineVertical(rect7.x - 5f, rect7.y, rect7.height);
-                                Widgets.DrawLineVertical(rect7.x + rect7.width + 5f, rect7.y, rect7.height);
-                                if (HATweakerUtility.RadioButtonLabeled(rect7, "Above_Hair".Translate(), data.DisplayTypeInt == 3, RightAlignment))
-                                {
-                                    HATweakerSetting.HeadgearDisplayType[c].DisplayTypeInt = 3;
-                                }
-                            }
-                        }
-                        rect1.y += LabelHeigh;
-                        rect2.y += (LabelHeigh + 5f);
-                        rect3.y += (LabelHeigh + 5f);
+                        Widgets.DrawHighlight(rect1);
                     }
+                    if (Widgets.RadioButtonLabeled(rect1, x.label, choose == c))
+                    {
+                        choose = c;
+                    }
+                    Widgets.DrawBox(rect2);
+                    GUI.DrawTexture(rect2, x.uiIcon);
+                    rect1.y += (LabelHeigh + 5f);
+                    rect2.y += (LabelHeigh + 5f);
                 }
             }
             IndexCount = se;
             Widgets.EndScrollView();
             Listing_Standard listing_Standard = new Listing_Standard();
+
+            //MainSetting
+            Rect main = inRect.BottomPart(0.95f).TopPart(0.9f).RightPart(0.69f);
+            Widgets.DrawWindowBackground(main);
+            HATweakerSetting.HATSettingData data = HATweakerSetting.HeadgearDisplayType[choose];
+            Rect main1 = new Rect(main.x + 5f, main.y + 5f, main.width / 2 - 10f, LabelHeigh);
+
+            if (Mouse.IsOver(main1))
+            {
+                Widgets.DrawHighlight(main1);
+            }
+            if (Widgets.RadioButtonLabeled(main1, "No_Graphic".Translate(), data.DisplayTypeInt == 0))
+            {
+                HATweakerSetting.HeadgearDisplayType[choose].DisplayTypeInt = 0;
+            }
+            main1.y += (LabelHeigh + 5f);
+            if (Mouse.IsOver(main1))
+            {
+                Widgets.DrawHighlight(main1);
+            }
+            if (Widgets.RadioButtonLabeled(main1, "No_Hair".Translate(), data.DisplayTypeInt == 1))
+            {
+                HATweakerSetting.HeadgearDisplayType[choose].DisplayTypeInt = 1;
+            }
+            main1.y += (LabelHeigh + 5f);
+            if (Mouse.IsOver(main1))
+            {
+                Widgets.DrawHighlight(main1);
+            }
+            if (Widgets.RadioButtonLabeled(main1, "Show_Hair".Translate(), data.DisplayTypeInt >= 2))
+            {
+                HATweakerSetting.HeadgearDisplayType[choose].DisplayTypeInt = origin[choose];
+            }
+            if (data.DisplayTypeInt >= 2 && (IndexOfVEF == -1 || HATweakerSetting.CloseVEFDraw))
+            {
+                main1.y += (LabelHeigh + 5f);
+                if (Mouse.IsOver(main1))
+                {
+                    Widgets.DrawHighlight(main1);
+                }
+                if (Widgets.RadioButtonLabeled(main1, "Under_Hair".Translate(), data.DisplayTypeInt == 2))
+                {
+                    HATweakerSetting.HeadgearDisplayType[choose].DisplayTypeInt = 2;
+                }
+                main1.y += (LabelHeigh + 5f);
+                if (Mouse.IsOver(main1))
+                {
+                    Widgets.DrawHighlight(main1);
+                }
+                if (Widgets.RadioButtonLabeled(main1, "Above_Hair".Translate(), data.DisplayTypeInt == 3))
+                {
+                    HATweakerSetting.HeadgearDisplayType[choose].DisplayTypeInt = 3;
+                }
+            }
+            if (data.DisplayTypeInt != 0)
+            {
+                if (data.DisplayTypeInt < 2)
+                {
+                    main1.y += 2 * (LabelHeigh + 5f);
+                }
+                main1.y += (LabelHeigh + 5f);
+                if (Mouse.IsOver(main1))
+                {
+                    Widgets.DrawHighlight(main1);
+                }
+                Widgets.CheckboxLabeled(main1, "Hide_Under_Roof".Translate(), ref HATweakerSetting.HeadgearDisplayType[choose].HideUnderRoof);
+                main1.y += (LabelHeigh + 5f);
+                if (Mouse.IsOver(main1))
+                {
+                    Widgets.DrawHighlight(main1);
+                }
+                Widgets.CheckboxLabeled(main1, "Hide_No_Fight".Translate(), ref HATweakerSetting.HeadgearDisplayType[choose].HideNoFight);
+            }
+
+            Rect main2 = main.RightHalf();
+            Rect main3 = new Rect(main2.x, main2.y, main2.width, main2.width);
 
             //The Switch Of VEF Patch In Setting
             if (IndexOfVEF != -1)
@@ -440,51 +431,6 @@ namespace HeadApparelTweaker
                 }
             }
         }
-
-
-        public static bool RadioButtonLabeled(Rect rect, string labelText, bool chosen, GUIStyle style)
-        {
-            Rect rect2 = rect;
-            rect2.xMax -= 24f;
-            GUI.Label(rect2, labelText, style);
-            bool num = Widgets.ButtonInvisible(rect);
-            if (num && !chosen)
-            {
-                SoundDefOf.Tick_Tiny.PlayOneShotOnCamera();
-            }
-            Color color = GUI.color;
-            GUI.color = Color.white;
-            GUI.DrawTexture(image: (!chosen) ? RadioButOffTex : Widgets.RadioButOnTex,
-                position: new Rect(rect.x + rect.width - 24f, rect.y + rect.height / 2f - 12f, 24f, 24f));
-            GUI.color = color;
-            return num;
-        }
-
-        public static void CheckboxLabeled(Rect rect, string label, ref bool checkOn, GUIStyle style, bool disabled = false, Texture2D texChecked = null, Texture2D texUnchecked = null, bool placeCheckboxNearText = false)
-        {
-            if (placeCheckboxNearText)
-            {
-                rect.width = Mathf.Min(rect.width, Text.CalcSize(label).x + 24f + 10f);
-            }
-
-            Rect rect2 = rect;
-            rect2.xMax -= 24f;
-            GUI.Label(rect2, label, style);
-            if (!disabled && Widgets.ButtonInvisible(rect))
-            {
-                checkOn = !checkOn;
-                if (checkOn)
-                {
-                    SoundDefOf.Checkbox_TurnedOn.PlayOneShotOnCamera();
-                }
-                else
-                {
-                    SoundDefOf.Checkbox_TurnedOff.PlayOneShotOnCamera();
-                }
-            }
-
-            Widgets.CheckboxDraw(rect.x + rect.width - 24f, rect.y + (rect.height - 24f) / 2f, checkOn, disabled);
-        }
     }
 
 
@@ -496,7 +442,7 @@ namespace HeadApparelTweaker
     public static class HarmonyPatchA5
     {
         internal static MethodInfo methodInfo = typeof(PawnRenderer).GetNestedTypes(AccessTools.all).
-            SelectMany((Type type) => type.GetMethods(AccessTools.all)).FirstOrDefault((MethodInfo x) => x.Name == "<DrawHeadHair>g__DrawApparel|2");
+            SelectMany((Type type) => type.GetMethods(AccessTools.all)).FirstOrDefault((MethodInfo x) => x.Name.Contains("DrawHeadHair") && x.Name.Contains("DrawApparel") && x.Name.Contains("2"));
         public static IEnumerable<CodeInstruction> TranDrawHeadHair(IEnumerable<CodeInstruction> codes)
         {
             int x = 0;
