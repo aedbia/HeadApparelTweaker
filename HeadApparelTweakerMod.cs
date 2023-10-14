@@ -77,10 +77,15 @@ namespace HeadApparelTweaker
             }
 
             //Search Tool;
-            Listing_Standard ls1 = new Listing_Standard();
-            ls1.Begin(inRect.TopPart(0.05f));
-            search = ls1.TextEntry(search);
-            ls1.End();
+            search = Widgets.TextArea(inRect.TopPart(0.04f).LeftPart(0.49f), search);
+            Rect one = inRect.TopPart(0.04f).RightPart(0.49f);
+            if (Mouse.IsOver(one))
+            {
+                Widgets.DrawHighlight(one);
+                TooltipHandler.TipRegion(one, "Only_Colonist_Tooltip".Translate());
+            }
+            Widgets.CheckboxLabeled(one, "Only_Colonist".Translate(), ref HATweakerSetting.OnlyWorkOnColonist);
+
 
             //Initialized ScrollView Data;
             float LabelHeigh = 30f;
@@ -190,9 +195,10 @@ namespace HeadApparelTweaker
                 }
                 Widgets.CheckboxLabeled(main1, "Hide_No_Fight".Translate(), ref HATweakerSetting.HeadgearDisplayType[choose].HideNoFight);
             }
-
             Rect main2 = main.RightHalf();
             Rect main3 = new Rect(main2.x, main2.y, main2.width, main2.width);
+            Rect main4 = new Rect(main3.x + main3.width / 6f, main3.y, main3.width / 1.5f, main3.width / 1.5f);
+            Widgets.DrawWindowBackground(main3);
 
             //The Switch Of VEF Patch In Setting
             if (IndexOfVEF != -1)
@@ -204,12 +210,18 @@ namespace HeadApparelTweaker
             }
 
             //Make SettingCache and Apply Setting;
-            HATweakerCache.ClearCache();
-            HATweakerCache.MakeModCache();
+            HATweakerCache.SingleModCache(choose);
+
             if (IndexOfVEF == -1 || HATweakerSetting.CloseVEFDraw)
             {
-                HATweakerUtility.MakeHeadApparelUnderHair();
-                HATweakerUtility.MakeHeadApparelCoverHair();
+                if (HATweakerCache.HeadApparelUnderHair.Contains(choose))
+                {
+                    HATweakerUtility.UnderOrAboveHair(choose, true);
+                }
+                if (HATweakerCache.HeadApparelAboveHair.Contains(choose))
+                {
+                    HATweakerUtility.UnderOrAboveHair(choose, false);
+                }
             }
         }
 
@@ -251,9 +263,11 @@ namespace HeadApparelTweaker
     {
         public static Dictionary<string, HATSettingData> HeadgearDisplayType = new Dictionary<string, HATSettingData>();
         public static bool CloseVEFDraw = false;
+        public static bool OnlyWorkOnColonist = true;
         public override void ExposeData()
         {
             Scribe_Values.Look(ref CloseVEFDraw, "CloseVEFDraw", false);
+            Scribe_Values.Look(ref OnlyWorkOnColonist, "OnlyWorkOnColonist", true);
             Scribe_Collections.Look(ref HeadgearDisplayType, "HeadgearDisplayType", LookMode.Value, LookMode.Deep);
         }
         public static void HeadApparelDataInitialize()
@@ -332,12 +346,11 @@ namespace HeadApparelTweaker
             HeadApparel = GetAllOverHead().NullOrEmpty() ? new List<ThingDef>() : GetAllOverHead();
             HATweakerSetting.HeadApparelDataInitialize();
             HATweakerMod.setting.Write();
-            ClearCache();
             MakeModCache();
             if (HATweakerMod.IndexOfVEF == -1 || HATweakerSetting.CloseVEFDraw)
             {
-                HATweakerUtility.MakeHeadApparelUnderHair();
-                HATweakerUtility.MakeHeadApparelCoverHair();
+                HATweakerUtility.MakeHeadApparelUnderOrAboveHair(true);
+                HATweakerUtility.MakeHeadApparelUnderOrAboveHair(false);
             }
         }
         public static List<ThingDef> GetAllOverHead()
@@ -353,39 +366,49 @@ namespace HeadApparelTweaker
             List<string> list = HATweakerSetting.HeadgearDisplayType.Keys.ToList();
             for (int x = 0; x < list.Count; x++)
             {
-                string a = list[x];
-                HATweakerSetting.HATSettingData data = HATweakerSetting.HeadgearDisplayType[a];
-                if (data.DisplayTypeInt == 0)
-                {
-                    HeadApparelNoGraphic.Add(a);
-                }
-                else
-                if (data.DisplayTypeInt == 1)
-                {
-                    HeadApparelNoHair.Add(a);
-                }
-                else
-                if (data.DisplayTypeInt == 2)
-                {
-                    HeadApparelUnderHair.Add(a);
-                }
-                else
-                if (data.DisplayTypeInt == 3)
-                {
-                    HeadApparelAboveHair.Add(a);
-                }
-                if (data.DisplayTypeInt != 0)
-                {
-                    if (data.HideUnderRoof)
-                    {
-                        HideUnderRoof.Add(a);
-                    }
-                    if (data.HideNoFight)
-                    {
-                        HideNoFight.Add(a);
-                    }
-                }
+                SingleModCache(list[x]);
+            }
+        }
 
+        public static void SingleModCache(string defName)
+        {
+            HeadApparelNoGraphic.Remove(defName);
+            HeadApparelNoHair.Remove(defName);
+            HeadApparelUnderHair.Remove(defName);
+            HeadApparelAboveHair.Remove(defName);
+            HideUnderRoof.Remove(defName);
+            HideNoFight.Remove(defName);
+
+            HATweakerSetting.HATSettingData data = HATweakerSetting.HeadgearDisplayType[defName];
+            if (data.DisplayTypeInt == 0)
+            {
+                HeadApparelNoGraphic.Add(defName);
+            }
+            else
+            if (data.DisplayTypeInt == 1)
+            {
+                HeadApparelNoHair.Add(defName);
+            }
+            else
+            if (data.DisplayTypeInt == 2)
+            {
+                HeadApparelUnderHair.Add(defName);
+            }
+            else
+            if (data.DisplayTypeInt == 3)
+            {
+                HeadApparelAboveHair.Add(defName);
+            }
+            if (data.DisplayTypeInt != 0)
+            {
+                if (data.HideUnderRoof)
+                {
+                    HideUnderRoof.Add(defName);
+                }
+                if (data.HideNoFight)
+                {
+                    HideNoFight.Add(defName);
+                }
             }
         }
         public static void ClearCache()
@@ -401,42 +424,34 @@ namespace HeadApparelTweaker
 
     public static class HATweakerUtility
     {
-        private static Texture2D RadioButOffTex = ContentFinder<Texture2D>.Get("UI/Widgets/RadioButOff");
 
-        public static void MakeHeadApparelUnderHair()
+        public static void MakeHeadApparelUnderOrAboveHair(bool BeenUnder)
         {
-            if (HATweakerCache.HeadApparelUnderHair.NullOrEmpty())
+            List<string> list = BeenUnder ? HATweakerCache.HeadApparelUnderHair : HATweakerCache.HeadApparelAboveHair;
+            if (list.NullOrEmpty())
             {
                 return;
             }
-            foreach (string x in HATweakerCache.HeadApparelUnderHair)
+            foreach (string x in list)
             {
-                if (DefDatabase<ThingDef>.GetNamedSilentFail(x) != null && DefDatabase<ThingDef>.GetNamedSilentFail(x).IsApparel)
-                {
-                    DefDatabase<ThingDef>.GetNamedSilentFail(x).apparel.forceRenderUnderHair = true;
-                }
+                UnderOrAboveHair(x, BeenUnder);
             }
         }
-        public static void MakeHeadApparelCoverHair()
+        public static void UnderOrAboveHair(string defName, bool BeenUnder)
         {
-            if (HATweakerCache.HeadApparelAboveHair.NullOrEmpty())
+            ThingDef apparel = DefDatabase<ThingDef>.GetNamedSilentFail(defName);
+            if (apparel != null && apparel.IsApparel)
             {
-                return;
-            }
-            foreach (string x in HATweakerCache.HeadApparelAboveHair)
-            {
-                if (DefDatabase<ThingDef>.GetNamedSilentFail(x) != null && DefDatabase<ThingDef>.GetNamedSilentFail(x).IsApparel)
+                bool a = apparel.apparel.forceRenderUnderHair;
+                if (a != BeenUnder)
                 {
-                    DefDatabase<ThingDef>.GetNamedSilentFail(x).apparel.forceRenderUnderHair = false;
+                    DefDatabase<ThingDef>.GetNamedSilentFail(defName).apparel.forceRenderUnderHair = BeenUnder;
                 }
             }
         }
+        //internal static Texture2D ShowHair = ContentFinder<Texture2D>.Get("UI/SettingsUI/ShowHair");
+        //internal static Texture2D ShowHead = ContentFinder<Texture2D>.Get("UI/SettingsUI/ShowHead");
     }
-
-
-
-
-
 
 
     public static class HarmonyPatchA5
@@ -543,6 +558,10 @@ namespace HeadApparelTweaker
             }
             __instance.graphics.apparelGraphics.
             RemoveAll(x => !HATweakerCache.HeadApparelNoGraphic.NullOrEmpty() && HATweakerCache.HeadApparelNoGraphic.Contains(x.sourceApparel.def.defName));
+            if (___pawn == null || (HATweakerSetting.OnlyWorkOnColonist && !___pawn.IsColonist))
+            {
+                return;
+            }
             IntVec3 position = ___pawn.Position;
             if (___pawn.Map != null && ___pawn.Position != null && ___pawn.Position.Roofed(___pawn.Map))
             {
@@ -576,6 +595,10 @@ namespace HeadApparelTweaker
         }
         public static void updateApparelData(Pawn pawn)
         {
+            if (!pawn.IsColonist && HATweakerSetting.OnlyWorkOnColonist)
+            {
+                return;
+            }
             if (pawn.apparel != null && pawn.apparel.AnyApparel)
             {
                 pawn.apparel.Notify_ApparelChanged();
@@ -611,6 +634,10 @@ namespace HeadApparelTweaker
             if (thing is Pawn)
             {
                 Pawn pawn = thing as Pawn;
+                if (!pawn.IsColonist&&HATweakerSetting.OnlyWorkOnColonist)
+                {
+                    return;
+                }
                 if (pawn.Map != null && pawn.apparel != null && pawn.apparel.AnyApparel)
                 {
                     if (ago.Roofed(pawn.Map) && !now.Roofed(pawn.Map))
