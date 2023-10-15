@@ -53,7 +53,7 @@ namespace HeadApparelTweaker
                 MethodInfo info = AccessTools.Method(AccessTools.TypeByName("CombatExtended.HarmonyCE.Harmony_PawnRenderer+Harmony_PawnRenderer_DrawHeadHair"), "DrawHeadApparel");
                 if (info != null)
                 {
-                    Harmony.Patch(info, transpiler: new HarmonyMethod(typeof(HarmonyPatchA5.HarmonyPatchCE), nameof(HarmonyPatchA5.HarmonyPatchCE.TranCEDrawHeadHairDrawApparel)),
+                    Harmony.Patch(info,prefix:new HarmonyMethod(typeof(HarmonyPatchA5.HarmonyPatchCE), nameof(HarmonyPatchA5.HarmonyPatchCE.Show)), transpiler: new HarmonyMethod(typeof(HarmonyPatchA5.HarmonyPatchCE), nameof(HarmonyPatchA5.HarmonyPatchCE.TranCEDrawHeadHairDrawApparel)),
                         postfix: new HarmonyMethod(typeof(HarmonyPatchA5.HarmonyPatchCE), nameof(HarmonyPatchA5.HarmonyPatchCE.CanCEDrawHair)));
                 }
             }
@@ -176,7 +176,7 @@ namespace HeadApparelTweaker
             {
                 HATweakerSetting.HeadgearDisplayType[choose].DisplayTypeInt = 0;
             }
-            main1.y += (LabelHeigh + 5f);
+            main1.y += LabelHeigh;
             if (Mouse.IsOver(main1))
             {
                 Widgets.DrawHighlight(main1);
@@ -185,7 +185,7 @@ namespace HeadApparelTweaker
             {
                 HATweakerSetting.HeadgearDisplayType[choose].DisplayTypeInt = 1;
             }
-            main1.y += (LabelHeigh + 5f);
+            main1.y += LabelHeigh;
             if (Mouse.IsOver(main1))
             {
                 Widgets.DrawHighlight(main1);
@@ -196,7 +196,7 @@ namespace HeadApparelTweaker
             }
             if (data.DisplayTypeInt >= 2 && (IndexOfVEF == -1 || HATweakerSetting.CloseVEFDraw))
             {
-                main1.y += (LabelHeigh + 5f);
+                main1.y += LabelHeigh;
                 if (Mouse.IsOver(main1))
                 {
                     Widgets.DrawHighlight(main1);
@@ -205,7 +205,7 @@ namespace HeadApparelTweaker
                 {
                     HATweakerSetting.HeadgearDisplayType[choose].DisplayTypeInt = 2;
                 }
-                main1.y += (LabelHeigh + 5f);
+                main1.y += LabelHeigh;
                 if (Mouse.IsOver(main1))
                 {
                     Widgets.DrawHighlight(main1);
@@ -219,20 +219,26 @@ namespace HeadApparelTweaker
             {
                 if (data.DisplayTypeInt < 2)
                 {
-                    main1.y += 2 * (LabelHeigh + 5f);
+                    main1.y += 2 * LabelHeigh;
                 }
-                main1.y += (LabelHeigh + 5f);
+                main1.y += LabelHeigh;
                 if (Mouse.IsOver(main1))
                 {
                     Widgets.DrawHighlight(main1);
                 }
                 Widgets.CheckboxLabeled(main1, "Hide_Under_Roof".Translate(), ref HATweakerSetting.HeadgearDisplayType[choose].HideUnderRoof);
-                main1.y += (LabelHeigh + 5f);
+                main1.y += LabelHeigh;
                 if (Mouse.IsOver(main1))
                 {
                     Widgets.DrawHighlight(main1);
                 }
-                Widgets.CheckboxLabeled(main1, "Hide_No_Fight".Translate(), ref HATweakerSetting.HeadgearDisplayType[choose].HideNoFight);
+                Widgets.CheckboxLabeled(main1, "Hide_No_Fight".Translate(), ref HATweakerSetting.HeadgearDisplayType[choose].HideNoFight); 
+                main1.y += LabelHeigh;
+                if (Mouse.IsOver(main1))
+                {
+                    Widgets.DrawHighlight(main1);
+                }
+                Widgets.CheckboxLabeled(main1, "Hide_In_Bed".Translate(), ref HATweakerSetting.HeadgearDisplayType[choose].HideInBed);
 
                 main1.y += (LabelHeigh + 10f);
                 Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
@@ -503,6 +509,9 @@ namespace HeadApparelTweaker
             public Vector2 EastOffset = Vector2.zero;
             public float EastRotation = 0;
             public float SouthRotation = 0;
+
+            public bool HideInBed = false;
+
             public void ExposeData()
             {
                 Scribe_Values.Look(ref this.DisplayTypeInt, "HeadgearDisplayType", forceSave: true);
@@ -512,6 +521,7 @@ namespace HeadApparelTweaker
                 }
                 Scribe_Values.Look(ref this.HideNoFight, "HideNoFight", false, true);
                 Scribe_Values.Look(ref this.HideUnderRoof, "HideUnderRoof", false, true);
+                Scribe_Values.Look(ref this.HideInBed, "HideInBed", false, true);
                 Scribe_Values.Look(ref this.AdvanceSetting, "AdvanceSetting", false, true);
                 Scribe_Values.Look(ref this.size, "size", Vector2.one, true);
                 Scribe_Values.Look(ref this.northOffset, "northOffset", Vector2.zero, true);
@@ -554,6 +564,7 @@ namespace HeadApparelTweaker
 
         public static List<string> HideNoFight = new List<string>();
         public static List<string> HideUnderRoof = new List<string>();
+        public static List<string> HideInBed = new List<string>();
 
         internal static RenderTexture Texture = null;
         public static List<string> Layers
@@ -563,6 +574,9 @@ namespace HeadApparelTweaker
                 return HeadLayerListDefOf.AllHeadLayerList.HeadLayerList;
             }
         }
+
+        
+
         static HATweakerCache()
         {
             HeadApparel = GetAllOverHead().NullOrEmpty() ? new List<ThingDef>() : GetAllOverHead();
@@ -600,6 +614,7 @@ namespace HeadApparelTweaker
             HeadApparelAboveHair.Remove(defName);
             HideUnderRoof.Remove(defName);
             HideNoFight.Remove(defName);
+            HideInBed.Remove(defName);
 
             HATweakerSetting.HATSettingData data = HATweakerSetting.HeadgearDisplayType[defName];
             if (data.DisplayTypeInt == 0)
@@ -630,6 +645,10 @@ namespace HeadApparelTweaker
                 if (data.HideNoFight)
                 {
                     HideNoFight.Add(defName);
+                }
+                if (data.HideInBed)
+                {
+                    HideInBed.Add(defName);
                 }
             }
         }
@@ -761,6 +780,10 @@ namespace HeadApparelTweaker
             FieldInfo field2 = AccessTools.Field(type, "quat");
             int x = 0;
             List<CodeInstruction> list = codes.ToList();
+            bool patch1 =true;
+            bool patch2 = true;
+            bool patch3 = true;
+            bool patch4 = true;
             for (int a = 0; a < list.Count; a++)
             {
                 CodeInstruction code = list[a];
@@ -774,6 +797,7 @@ namespace HeadApparelTweaker
                     yield return new CodeInstruction(OpCodes.Ldfld, field1);
                     yield return new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(HarmonyPatchA5), nameof(SetMesh)));
                     yield return code;
+                    patch1 = false;
                 }
                 else if (CodeInstructionExtensions.Is(code, OpCodes.Ldfld, AccessTools.Field(type, "onHeadLoc")) && x == 0)
                 {
@@ -787,6 +811,7 @@ namespace HeadApparelTweaker
                     yield return new CodeInstruction(OpCodes.Ldfld, field1);
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), nameof(GetOnHeadLocOffset)));
                     x += 1;
+                    patch2 = false;
                 }
                 else if (1 < a && a < list.Count - 3 && code.opcode == OpCodes.Ldloc_3 && list[a - 1].opcode == OpCodes.Ldloc_0 && list[a + 1].opcode == OpCodes.Ldarg_0)
                 {
@@ -800,6 +825,7 @@ namespace HeadApparelTweaker
                     yield return new CodeInstruction(OpCodes.Ldfld, field);
                     yield return new CodeInstruction(OpCodes.Ldfld, field1);
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), nameof(GetLocOffset)));
+                    patch3 = false;
                 }
                 else if (code.opcode == OpCodes.Ldfld && code.OperandIs(field2))
                 {
@@ -811,11 +837,16 @@ namespace HeadApparelTweaker
                     yield return new CodeInstruction(OpCodes.Ldfld, field);
                     yield return new CodeInstruction(OpCodes.Ldfld, field1);
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), nameof(SetRotation)));
+                    patch4 = false;
                 }
                 else
                 {
                     yield return code;
                 }
+            }
+            if (patch1&&patch2&&patch3&&patch4)
+            {
+                Log.Warning("TranDrawHeadHairDrawApparel(1)-Fail");
             }
         }
 
@@ -990,6 +1021,12 @@ namespace HeadApparelTweaker
                         RemoveAll((ApparelGraphicRecord x) => !HATweakerCache.HideNoFight.NullOrEmpty<string>() && HATweakerCache.HideNoFight.
                         Contains(x.sourceApparel.def.defName));
                 }
+                if (___pawn.InBed())
+                {
+                    __instance.graphics.apparelGraphics.
+                        RemoveAll((ApparelGraphicRecord x) => !HATweakerCache.HideInBed.NullOrEmpty<string>() && HATweakerCache.HideInBed.
+                        Contains(x.sourceApparel.def.defName));
+                }
             }
         }
 
@@ -1001,6 +1038,7 @@ namespace HeadApparelTweaker
         {
             MethodInfo aaa = AccessTools.Method(typeof(PriorityWork), "ClearPrioritizedWorkAndJobQueue", null, null);
             List<CodeInstruction> list = codes.ToList();
+            bool patch = true;
             for (int i = 0; i < list.Count; i++)
             {
                 CodeInstruction code = list[i];
@@ -1010,11 +1048,16 @@ namespace HeadApparelTweaker
                     yield return new CodeInstruction(OpCodes.Ldarg_0, null);
                     yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Pawn_DraftController), "pawn"));
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), "updateApparelData", null, null));
+                    patch = false;
                 }
                 else
                 {
                     yield return code;
                 }
+            }
+            if (patch)
+            {
+                Log.Warning("TranSetDrafted(2)-Fail");
             }
         }
 
@@ -1040,6 +1083,7 @@ namespace HeadApparelTweaker
         public static IEnumerable<CodeInstruction> TranSetPosition(IEnumerable<CodeInstruction> codes)
         {
             List<CodeInstruction> list = codes.ToList();
+            bool patch = true;
             for (int i = 0; i < list.Count; i++)
             {
                 CodeInstruction code = list[i];
@@ -1052,11 +1096,16 @@ namespace HeadApparelTweaker
                     yield return new CodeInstruction(OpCodes.Ldarg_1, null);
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), nameof(IsPositionChange)));
                     yield return new CodeInstruction(OpCodes.Ldarg_0, null);
+                    patch = false;
                 }
                 else
                 {
                     yield return code;
                 }
+            }
+            if (patch)
+            {
+                Log.Warning("TranSetPosition(3)-Fail");
             }
         }
 
@@ -1097,6 +1146,7 @@ namespace HeadApparelTweaker
             {
                 Label l1 = generator.DefineLabel();
                 int x = 0;
+                int y = 0;
                 List<CodeInstruction> list = codes.ToList();
                 for (int a = 0; a < list.Count; a++)
                 {
@@ -1113,6 +1163,7 @@ namespace HeadApparelTweaker
                         yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(ApparelProperties), "forceRenderUnderHair"));
                         yield return new CodeInstruction(OpCodes.Brtrue, l1);
                         x = a;
+                        y++;
                     }
                     else
                     if (x != 0 && a > x && code.opcode == OpCodes.Ldloca_S && operand == "UnityEngine.Matrix4x4 (17)")
@@ -1128,6 +1179,7 @@ namespace HeadApparelTweaker
                         yield return new CodeInstruction(OpCodes.Ldloc_S, 11);
                         yield return new CodeInstruction(OpCodes.Ldarg_1);
                         yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), nameof(GetOnHeadLocOffset)));
+                        y++;
                     }
                     else
                     if (a < list.Count - 20 && code.opcode == OpCodes.Ldloc_S && operand == "UnityEngine.Mesh (6)" && list[a + 1].opcode == OpCodes.Ldloc_S
@@ -1137,23 +1189,43 @@ namespace HeadApparelTweaker
                         yield return new CodeInstruction(OpCodes.Ldloc_S, 11);
                         yield return new CodeInstruction(OpCodes.Ldarg_1);
                         yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), nameof(SetMesh)));
+                        y++;
                     }
                     else
                     if (CodeInstructionExtensions.Is(code, OpCodes.Ldarg_S, 6))
                     {
-                        Log.Warning(operand);
                         yield return code;
                         yield return new CodeInstruction(OpCodes.Ldarg_S, 5);
                         yield return new CodeInstruction(OpCodes.Ldloc_S, 11);
                         yield return new CodeInstruction(OpCodes.Ldarg_1);
                         yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), nameof(SetRotation)));
+                        y++;
+                    }else
+                    if (code.opcode == OpCodes.Stloc_S&&operand == "System.Boolean (12)")
+                    {
+                        yield return code;
+                        yield return new CodeInstruction(OpCodes.Ldloc_S, 11);
+                        yield return new CodeInstruction (OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchCE), nameof(AreadyHasGraphic)));
+                        yield return code;
+                        y++;
                     }
                     else
                     {
                         yield return code;
                     }
                 }
+                if (y != 7)
+                {
+                    Log.Warning("TranCEDrawHeadHairDrawApparel(4)-Fail");
+                }
             }
+
+
+            public static bool AreadyHasGraphic(ApparelGraphicRecord apparel)
+            {
+                return apparel.sourceApparel.def.apparel.LastLayer == ApparelLayerDefOf.Overhead || apparel.sourceApparel.def.apparel.LastLayer == ApparelLayerDefOf.EyeCover;
+            }
+
 
             public static void CanCEDrawHair(ref PawnRenderer renderer, ref Pawn pawn, ref bool shouldRenderHair)
             {
@@ -1174,6 +1246,11 @@ namespace HeadApparelTweaker
                         shouldRenderHair = true;
                     }
                 }
+            }
+
+            public static bool Show()
+            {
+                return true;
             }
         }
     }
