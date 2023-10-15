@@ -153,7 +153,7 @@ namespace HeadApparelTweaker
                 {
                     List<Pawn> Colonists = Current.Game.CurrentMap.mapPawns.FreeColonists;
                     Pawn = Colonists.NullOrEmpty() ? null : Colonists.FirstOrDefault();
-                    PawnName = Pawn.Name.ToStringFull;
+                    PawnName = Colonists.NullOrEmpty() ? null : Pawn.Name.ToStringFull;
                 }
                 else if (Pawn.Name.ToStringFull != PawnName)
                 {
@@ -269,10 +269,12 @@ namespace HeadApparelTweaker
                     HATweakerSetting.HeadgearDisplayType[choose].EastOffset.y =
                     Widgets.HorizontalSlider_NewTemp(main1.RightHalf(), data.EastOffset.y, -1, 1);
                     main1.y += (LabelHeigh - 15f);
-                    Widgets.Label(main1, "Rotate".Translate() + ":" + data.rotation.ToString("F0"));
+                    Widgets.Label(main1, "Rotate".Translate() + ":" + "East".Translate() + data.EastRotation.ToString("0°") + " | " + "South".Translate() + data.SouthRotation.ToString("0°"));
                     main1.y += (LabelHeigh - 10f);
-                    HATweakerSetting.HeadgearDisplayType[choose].rotation =
-                    Widgets.HorizontalSlider_NewTemp(main1, data.rotation, -180, 180);
+                    HATweakerSetting.HeadgearDisplayType[choose].EastRotation =
+                    Widgets.HorizontalSlider_NewTemp(main1.LeftHalf(), data.EastRotation, -180, 180);
+                    HATweakerSetting.HeadgearDisplayType[choose].SouthRotation =
+                    Widgets.HorizontalSlider_NewTemp(main1.RightHalf(), data.SouthRotation, -180, 180);
                 }
             }
             Rect main2 = main.RightHalf();
@@ -302,14 +304,14 @@ namespace HeadApparelTweaker
             {
                 Pawn.apparel.Notify_ApparelChanged();
                 HATweakerUtility.DrawPawnCache(Pawn, new Vector2(main2.width, main2.height), direction, out HATweakerCache.Texture);
-            }
-            if (HATweakerCache.Texture != null && InGame)
-            {
-                GUI.DrawTexture(main2, HATweakerCache.Texture);
+                if (HATweakerCache.Texture != null)
+                {
+                    GUI.DrawTexture(main2, HATweakerCache.Texture);
+                }
             }
             else
             {
-                GUI.Label(main2,"Into_Game".Translate());
+                GUI.Label(main2, "Into_Game".Translate());
             }
             Rect main4 = new Rect(main2.x, main2.y + main2.height - LabelHeigh, main2.width, LabelHeigh);
             if (Widgets.ButtonText(main4.LeftPart(0.32f), "←—"))
@@ -344,7 +346,8 @@ namespace HeadApparelTweaker
                     HATweakerSetting.HeadgearDisplayType[choose].southOffset = Vector2.zero;
                     HATweakerSetting.HeadgearDisplayType[choose].northOffset = Vector2.zero;
                     HATweakerSetting.HeadgearDisplayType[choose].EastOffset = Vector2.zero;
-                    HATweakerSetting.HeadgearDisplayType[choose].rotation = 0f;
+                    HATweakerSetting.HeadgearDisplayType[choose].SouthRotation = 0f;
+                    HATweakerSetting.HeadgearDisplayType[choose].EastRotation = 0f;
                 }
             }
             if (Widgets.ButtonText(main4.RightPart(0.32f), "—→"))
@@ -498,7 +501,8 @@ namespace HeadApparelTweaker
             public Vector2 northOffset = Vector2.zero;
             public Vector2 southOffset = Vector2.zero;
             public Vector2 EastOffset = Vector2.zero;
-            public float rotation = 0;
+            public float EastRotation = 0;
+            public float SouthRotation = 0;
             public void ExposeData()
             {
                 Scribe_Values.Look(ref this.DisplayTypeInt, "HeadgearDisplayType", forceSave: true);
@@ -513,7 +517,8 @@ namespace HeadApparelTweaker
                 Scribe_Values.Look(ref this.northOffset, "northOffset", Vector2.zero, true);
                 Scribe_Values.Look(ref this.southOffset, "southOffset", Vector2.zero, true);
                 Scribe_Values.Look(ref this.EastOffset, "EastOffset", Vector2.zero, true);
-                Scribe_Values.Look(ref this.rotation, "rotation", 0f, true);
+                Scribe_Values.Look(ref this.EastRotation, "EastRotation", 0f, true);
+                Scribe_Values.Look(ref this.SouthRotation, "SouthRotation", 0f, true);
 
             }
 
@@ -799,6 +804,8 @@ namespace HeadApparelTweaker
                 else if (code.opcode == OpCodes.Ldfld && code.OperandIs(field2))
                 {
                     yield return code;
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(type, "headFacing"));
                     yield return new CodeInstruction(OpCodes.Ldarg_1);
                     yield return new CodeInstruction(OpCodes.Ldarg_0);
                     yield return new CodeInstruction(OpCodes.Ldfld, field);
@@ -812,7 +819,7 @@ namespace HeadApparelTweaker
             }
         }
 
-        public static Quaternion SetRotation(Quaternion quat,ApparelGraphicRecord graphicRecord, Pawn pawn)
+        public static Quaternion SetRotation(Quaternion quat, Rot4 headFacing, ApparelGraphicRecord graphicRecord, Pawn pawn)
         {
             if (!(pawn == null || (HATweakerSetting.OnlyWorkOnColonist_2 && !pawn.IsColonist)))
             {
@@ -829,7 +836,24 @@ namespace HeadApparelTweaker
                     HATweakerSetting.HATSettingData data = HATweakerSetting.HeadgearDisplayType[graphicRecord.sourceApparel.def.defName];
                     if (data.AdvanceSetting)
                     {
-                        Vector3 b = new Vector3(a.eulerAngles.x,a.eulerAngles.y + data.rotation, a.eulerAngles.z);
+                        float x;
+                        if (headFacing == Rot4.West)
+                        {
+                            x = data.EastRotation;
+                        }
+                        else if (headFacing == Rot4.East)
+                        {
+                            x = -data.EastRotation;
+                        }
+                        else if (headFacing == Rot4.South)
+                        {
+                            x = data.SouthRotation;
+                        }
+                        else
+                        {
+                            x = -data.SouthRotation;
+                        }
+                        Vector3 b = new Vector3(a.eulerAngles.x, a.eulerAngles.y + x, a.eulerAngles.z);
                         a.eulerAngles = b;
                     }
                 }
@@ -1113,11 +1137,13 @@ namespace HeadApparelTweaker
                         yield return new CodeInstruction(OpCodes.Ldloc_S, 11);
                         yield return new CodeInstruction(OpCodes.Ldarg_1);
                         yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), nameof(SetMesh)));
-                    } else
-                    if (CodeInstructionExtensions.Is(code,OpCodes.Ldarg_S,6))
+                    }
+                    else
+                    if (CodeInstructionExtensions.Is(code, OpCodes.Ldarg_S, 6))
                     {
                         Log.Warning(operand);
                         yield return code;
+                        yield return new CodeInstruction(OpCodes.Ldarg_S, 5);
                         yield return new CodeInstruction(OpCodes.Ldloc_S, 11);
                         yield return new CodeInstruction(OpCodes.Ldarg_1);
                         yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), nameof(SetRotation)));
