@@ -1628,11 +1628,6 @@ namespace HeadApparelTweaker
             }
             public static bool CanDrawAddon_1(object bodyaddon, Pawn pawn)
             {
-                object c = bodyaddon.GetType().GetFields().FirstOrDefault(x => x.GetType() == typeof(string) && x.Name == "backstoryRequirement");
-                if (c != null)
-                {
-                    Log.Warning("wa");
-                }
                 if (bodyaddon is AlienRace.AlienPartGenerator.BodyAddon)
                 {
                     AlienRace.AlienPartGenerator.BodyAddon addon = bodyaddon as AlienRace.AlienPartGenerator.BodyAddon;
