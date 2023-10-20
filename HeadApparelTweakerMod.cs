@@ -78,7 +78,7 @@ namespace HeadApparelTweaker
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
-            if (!SettingOpen&& changeBar == 1)
+            if (!SettingOpen && changeBar == 1)
             {
                 SettingOpen = true;
             }
@@ -93,7 +93,15 @@ namespace HeadApparelTweaker
             }
             //Search Tool;
             search = Widgets.TextArea(inRect.TopPart(0.04f).LeftPart(0.3f), search);
-            changeBar = GUI.SelectionGrid(inRect.TopPart(0.04f).RightPart(0.69f), changeBar, new string[] { "Basic_Settings".Translate(), "Advanced_Settings".Translate(), "Global_Settings".Translate() }, 3);
+            string[] ob = new string[] { "Basic_Settings".Translate(), "Advanced_Settings".Translate(), "Global_Settings".Translate() };
+            GUIContent[] guiB = new GUIContent[ob.Length];
+            for (int i = 0; i < ob.Length; i++)
+            {
+                guiB[i] = new GUIContent(ob[i]);
+            }
+            GUIStyle guiA = new GUIStyle(GUI.skin.window);
+            guiA.padding.bottom = -10;
+            changeBar = GUI.SelectionGrid(inRect.TopPart(0.04f).RightPart(0.69f), changeBar, guiB, 3, guiA);
 
             //Initialized ScrollView Data;
             float LabelHeigh = 30f;
@@ -147,7 +155,7 @@ namespace HeadApparelTweaker
                         Widgets.DrawBox(rect);
                         GUI.DrawTexture(rect, def.uiIcon);
                         Rect rect1 = new Rect(rt3.x + 0.05f * rt3.height, rt3.y + rt3.height * 0.65f, rt3.height * 0.75f, rt3.height * 0.35f);
-                        GUI.Label(rect1, def.label, new GUIStyle(Text.CurFontStyle)
+                        GUI.Label(rect1, def.label, new GUIStyle(Verse.Text.CurFontStyle)
                         {
                             alignment = TextAnchor.MiddleCenter
                         });
@@ -413,7 +421,7 @@ namespace HeadApparelTweaker
                             Widgets.HorizontalSlider_NewTemp(main1.RightHalf(), data.southOffset.y, -1, 1);
                             main1.y += (LabelHeigh - 5f);
                             Widgets.Label(main1.LeftPart(0.7f), "East".Translate() + ":" + data.EastOffset.ToString("F2")
-                                + " | " + "West".Translate() + data.getOffset(Rot4.West).ToString("f2"));
+                                + " | " + "West".Translate() + data.GetOffset(Rot4.West).ToString("f2"));
                             if (Widgets.ButtonText(main1.RightPart(0.3f), "Reset".Translate()))
                             {
                                 HATweakerSetting.HeadgearDisplayType[choose].EastOffset = Vector2.zero;
@@ -451,8 +459,7 @@ namespace HeadApparelTweaker
                         }
                         if (ApparelGraphicRecord == null || ((ApparelGraphicRecord)ApparelGraphicRecord).sourceApparel.def.defName != choose)
                         {
-                            ApparelGraphicRecord a;
-                            ApparelGraphicRecordGetter.TryGetGraphicApparel(Apparel, Pawn.story.bodyType, out a);
+                            ApparelGraphicRecordGetter.TryGetGraphicApparel(Apparel, Pawn.story.bodyType, out ApparelGraphicRecord a);
                             ApparelGraphicRecord = a;
                         }
                     }
@@ -844,7 +851,7 @@ namespace HeadApparelTweaker
 
             }
 
-            public Vector2 getOffset(Rot4 facing)
+            public Vector2 GetOffset(Rot4 facing)
             {
                 if (facing == Rot4.North)
                 {
@@ -1225,7 +1232,7 @@ namespace HeadApparelTweaker
                     HATweakerSetting.HATSettingData data = HATweakerSetting.HeadgearDisplayType[graphicRecord.sourceApparel.def.defName];
                     if (data.AdvanceMode)
                     {
-                        Vector2 offset = data.getOffset(headFacing);
+                        Vector2 offset = data.GetOffset(headFacing);
                         a.x += offset.x;
                         a.z += offset.y;
                     }
@@ -1248,7 +1255,7 @@ namespace HeadApparelTweaker
                     HATweakerSetting.HATSettingData data = HATweakerSetting.HeadgearDisplayType[graphicRecord.sourceApparel.def.defName];
                     if (data.AdvanceMode)
                     {
-                        Vector2 offset = data.getOffset(headFacing);
+                        Vector2 offset = data.GetOffset(headFacing);
                         a.x += offset.x;
                         a.z += offset.y;
                     }
@@ -1382,7 +1389,7 @@ namespace HeadApparelTweaker
                     yield return code;
                     yield return new CodeInstruction(OpCodes.Ldarg_0, null);
                     yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Pawn_DraftController), "pawn"));
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), "updateApparelData", null, null));
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), "UpdateApparelData", null, null));
                     patch = false;
                 }
                 else
@@ -1400,7 +1407,7 @@ namespace HeadApparelTweaker
 
 
 
-        public static void updateApparelData(Pawn pawn)
+        public static void UpdateApparelData(Pawn pawn)
         {
             if (!pawn.IsColonist && HATweakerSetting.OnlyWorkOnColonist)
             {
@@ -1595,12 +1602,15 @@ namespace HeadApparelTweaker
         {
             public HarmonyPatchAlienRace(Harmony harmony)
             {
-                MethodInfo info = AccessTools.TypeByName("AlienRace.AlienPartGenerator+BodyAddon").GetMethods(AccessTools.all).
-                    FirstOrDefault(x => x.Name == "CanDrawAddon" && x.GetParameters().Any(a => a.ParameterType == typeof(Pawn)));
-
-                if (info != null)
+                if (HATweakerMod.IndexOfAR != -1)
                 {
-                    harmony.Patch(info, transpiler: new HarmonyMethod(AccessTools.Method(typeof(HarmonyPatchAlienRace), nameof(TranCanDrawAddon))));
+                    /*MethodInfo info = AccessTools.TypeByName("AlienRace.AlienPartGenerator+BodyAddon").GetMethods(AccessTools.all).
+                        FirstOrDefault(x => x.Name == "CanDrawAddon" && x.GetParameters().Any(a => a.ParameterType == typeof(Pawn)));
+
+                    if (info != null)
+                    {
+                        harmony.Patch(info, transpiler: new HarmonyMethod(AccessTools.Method(typeof(HarmonyPatchAlienRace), nameof(TranCanDrawAddon))));
+                    }*/
                 }
             }
             public static IEnumerable<CodeInstruction> TranCanDrawAddon(IEnumerable<CodeInstruction> codes)
@@ -1630,14 +1640,13 @@ namespace HeadApparelTweaker
             {
                 if (bodyaddon is AlienRace.AlienPartGenerator.BodyAddon)
                 {
-                    AlienRace.AlienPartGenerator.BodyAddon addon = bodyaddon as AlienRace.AlienPartGenerator.BodyAddon;
+                    Addons_1 addon = bodyaddon.ChangeType<Addons_1>();
                     bool draw;
                     bool toDraw = false;
                     bool toDraw1 = false;
-                    BodyPartDef a = bodyaddon.GetType().GetField("bodyPart").GetValue(bodyaddon) as BodyPartDef;
-                    if (a != null)
+                    if (addon.bodyPart!= null)
                     {
-                        draw = pawn.health.hediffSet.GetNotMissingParts().Any(bpr => bpr.untranslatedCustomLabel == a.defName || bpr.def.defName == a.defName);
+                        draw = pawn.health.hediffSet.GetNotMissingParts().Any(bpr => bpr.untranslatedCustomLabel == addon.bodyPart.defName || bpr.def.defName == addon.bodyPart.defName);
                     }
                     else
                     {
@@ -1701,8 +1710,7 @@ namespace HeadApparelTweaker
                         }
                         if (toDraw1)
                         {
-                            BackstoryDef b1 = bodyaddon.GetType().GetField("backstoryRequirement").GetValue(bodyaddon) as BackstoryDef;
-                            if (b1 != null || pawn.story.AllBackstories.Any(b => b == b1))
+                            if (addon.backstoryRequirement != null || pawn.story.AllBackstories.Any(b => b == addon.backstoryRequirement))
                             {
                                 return draw;
                             }
@@ -1711,6 +1719,15 @@ namespace HeadApparelTweaker
                     return false;
                 }
                 return false;
+            }
+            private class Addons_1
+            {
+                internal List<string> hiddenUnderApparelTag = new List<string>();
+                internal List<BodyPartGroupDef> hiddenUnderApparelFor = new List<BodyPartGroupDef>();
+                internal bool drawnInBed = true;
+                internal bool drawnOnGround = true;
+                internal BackstoryDef backstoryRequirement;
+                internal BodyTypeDef bodyPart;
             }
         }
     }
