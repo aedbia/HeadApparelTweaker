@@ -26,8 +26,21 @@ namespace HeadApparelTweaker
         private static bool InGame = false;
         internal static bool SettingOpen = false;
         private static Rot4 direction = Rot4.South;
-        private static int changeBar = 0;
+        private static int changeBarInt = 0;
         private int HatStartIndex = 0;
+        private static bool BarChange = false;
+        private static int ChangeBar
+        {
+            get { return changeBarInt; }
+            set
+            {
+                if (value != changeBarInt)
+                {
+                    BarChange = true;
+                    changeBarInt = value;
+                };
+            }
+        }
 
         public HATweakerMod(ModContentPack content) : base(content)
         {
@@ -78,7 +91,7 @@ namespace HeadApparelTweaker
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
-            if (!SettingOpen && changeBar == 1)
+            if (!SettingOpen && ChangeBar == 1)
             {
                 SettingOpen = true;
             }
@@ -101,12 +114,12 @@ namespace HeadApparelTweaker
             }
             GUIStyle guiA = new GUIStyle(GUI.skin.window);
             guiA.padding.bottom = -10;
-            changeBar = GUI.SelectionGrid(inRect.TopPart(0.04f).RightPart(0.69f), changeBar, guiB, 3, guiA);
+            ChangeBar = GUI.SelectionGrid(inRect.TopPart(0.04f).RightPart(0.69f), ChangeBar, guiB, 3, guiA);
 
             //Initialized ScrollView Data;
             float LabelHeigh = 30f;
             Rect rect0 = inRect.BottomPart(0.95f);
-            if (changeBar == 0)
+            if (ChangeBar == 0)
             {
                 if (SettingOpen)
                 {
@@ -251,7 +264,7 @@ namespace HeadApparelTweaker
                 }
             }
             else
-            if (changeBar == 1)
+            if (ChangeBar == 1)
             {
                 Rect outRect = rect0.LeftPart(0.3f);
                 Widgets.DrawWindowBackground(outRect);
@@ -285,21 +298,6 @@ namespace HeadApparelTweaker
                 Widgets.EndScrollView();
                 InGame = Current.Game != null && Current.Game.CurrentMap != null && Current.Game.CurrentMap.mapPawns != null && !Current.Game.CurrentMap.mapPawns.AllPawns.NullOrEmpty();
                 //MainSetting
-                if (InGame)
-                {
-                    if (Pawn == null)
-                    {
-                        List<Pawn> Colonists = Current.Game.CurrentMap.mapPawns.FreeColonists;
-                        Pawn = Colonists.NullOrEmpty() ? null : Colonists.FirstOrDefault();
-                        PawnName = Colonists.NullOrEmpty() ? null : Pawn.Name.ToStringFull;
-                    }
-                    else if (Pawn.Name.ToStringFull != PawnName)
-                    {
-                        List<Pawn> Colonists = Current.Game.CurrentMap.mapPawns.FreeColonists;
-                        Pawn = Colonists.NullOrEmpty() ? null : Colonists.FirstOrDefault();
-                        PawnName = Pawn.Name.ToStringFull;
-                    }
-                }
                 ThingDef def = list.FirstOrDefault(x => x.defName == choose);
                 HATweakerSetting.InitialSingleSetting(def);
                 Rect main = rect0.RightPart(0.69f);
@@ -449,6 +447,55 @@ namespace HeadApparelTweaker
                 Rect main2 = main.RightHalf();
                 Rect main3 = new Rect(main2.x, main2.y, main2.width, main2.height - LabelHeigh - 5f);
                 Widgets.DrawWindowBackground(main3);
+                if (InGame)
+                {
+                    List<Pawn> Colonists = Current.Game.CurrentMap.mapPawns.FreeColonists;
+                    if (!Colonists.NullOrEmpty())
+                    {
+                        if (PawnName == null)
+                        {
+                            PawnName = Colonists.FirstOrDefault().Name.ToStringFull;
+                        }
+                        if (Pawn == null)
+                        {
+                            Pawn = Colonists.FirstOrDefault();
+                        }
+                        if (PawnName != null && Widgets.ButtonText(main3.TopPart(0.05f), PawnName))
+                        {
+                            List<FloatMenuOption> Options = new List<FloatMenuOption>();
+                            for (int i = 0; i < Colonists.Count; i++)
+                            {
+                                Pawn pa = Colonists[i];
+                                string now = "";
+                                if (pa.Name.ToStringFull == PawnName)
+                                {
+                                    now = "(Now)".Translate();
+                                }
+                                Options.Add(new FloatMenuOption(pa.Name.ToStringShort + now, () => PawnName = pa.Name.ToStringFull));
+                            }
+                            Find.WindowStack.Add(new FloatMenu(Options));
+                        }
+
+                        if (Pawn != null && Pawn.Name.ToStringFull != PawnName)
+                        {
+                            Pawn = Colonists.FirstOrDefault(x => x.Name.ToStringFull == PawnName);
+                            if (Pawn == null)
+                            {
+                                PawnName = null;
+                            }
+                            else
+                            {
+                                PawnName = Pawn.Name.ToStringFull;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        PawnName = null;
+                        Pawn = null;
+                        HATweakerCache.Texture = null;
+                    }
+                }
                 if (!choose.NullOrEmpty() && Pawn != null && InGame)
                 {
                     if (Apparel != null)
@@ -470,16 +517,15 @@ namespace HeadApparelTweaker
                 }
                 if (Pawn != null && InGame)
                 {
-                    Pawn.apparel.Notify_ApparelChanged();
                     HATweakerUtility.DrawPawnCache(Pawn, new Vector2(main2.width, main2.height), direction, out HATweakerCache.Texture);
                     if (HATweakerCache.Texture != null)
                     {
-                        GUI.DrawTexture(main2, HATweakerCache.Texture);
+                        GUI.DrawTexture(main3.BottomPart(0.95f), HATweakerCache.Texture);
                     }
                 }
                 else
                 {
-                    GUI.Label(main2, "Into_Game".Translate());
+                    GUI.Label(main3, "Into_Game".Translate());
                 }
                 Rect main4 = new Rect(main2.x, main2.y + main2.height - LabelHeigh, main2.width, LabelHeigh);
                 if (Widgets.ButtonText(main4.LeftPart(0.32f), "←—"))
@@ -539,7 +585,7 @@ namespace HeadApparelTweaker
                 }
             }
             else
-            if (changeBar == 2)
+            if (ChangeBar == 2)
             {
                 if (SettingOpen)
                 {
@@ -643,10 +689,13 @@ namespace HeadApparelTweaker
 
             //The Switch Of VEF Patch And AlienRacePatch In Setting
             //Make SettingCache and Apply Setting;
-            if (!choose.NullOrEmpty() && changeBar == 1)
+            if (!choose.NullOrEmpty() && ChangeBar != 2)
             {
+                if ((Pawn != null && InGame) && (ChangeBar == 1 || BarChange))
+                {
+                    Pawn.apparel.Notify_ApparelChanged();
+                }
                 HATweakerCache.SingleModCache(choose);
-
                 if (IndexOfVEF == -1 || HATweakerSetting.CloseVEFDraw)
                 {
                     if (HATweakerCache.HeadApparelUnderHair.Contains(choose))
@@ -658,6 +707,14 @@ namespace HeadApparelTweaker
                         HATweakerUtility.UnderOrAboveHair(choose, false);
                     }
                 }
+            }
+
+            if (BarChange)
+            {
+                Pawn = null;
+                PawnName = null;
+                HATweakerCache.Texture = null;
+                BarChange = false;
             }
         }
         private static void QuickSetting(List<ThingDef> defs, int mode, bool? targetBool, int? targetDisplayType)
@@ -1604,13 +1661,13 @@ namespace HeadApparelTweaker
             {
                 if (HATweakerMod.IndexOfAR != -1)
                 {
-                    /*MethodInfo info = AccessTools.TypeByName("AlienRace.AlienPartGenerator+BodyAddon").GetMethods(AccessTools.all).
+                    MethodInfo info = AccessTools.TypeByName("AlienRace.AlienPartGenerator+BodyAddon").GetMethods(AccessTools.all).
                         FirstOrDefault(x => x.Name == "CanDrawAddon" && x.GetParameters().Any(a => a.ParameterType == typeof(Pawn)));
 
                     if (info != null)
                     {
                         harmony.Patch(info, transpiler: new HarmonyMethod(AccessTools.Method(typeof(HarmonyPatchAlienRace), nameof(TranCanDrawAddon))));
-                    }*/
+                    }
                 }
             }
             public static IEnumerable<CodeInstruction> TranCanDrawAddon(IEnumerable<CodeInstruction> codes)
@@ -1640,11 +1697,11 @@ namespace HeadApparelTweaker
             {
                 if (bodyaddon is AlienRace.AlienPartGenerator.BodyAddon)
                 {
-                    Addons_1 addon = bodyaddon.ChangeType<Addons_1>();
+                    Addons_1 addon = new Addons_1(bodyaddon);
                     bool draw;
                     bool toDraw = false;
                     bool toDraw1 = false;
-                    if (addon.bodyPart!= null)
+                    if (addon.bodyPart != null)
                     {
                         draw = pawn.health.hediffSet.GetNotMissingParts().Any(bpr => bpr.untranslatedCustomLabel == addon.bodyPart.defName || bpr.def.defName == addon.bodyPart.defName);
                     }
@@ -1722,6 +1779,16 @@ namespace HeadApparelTweaker
             }
             private class Addons_1
             {
+                public Addons_1(object origin)
+                {
+                    Type type = origin.GetType();
+                    hiddenUnderApparelFor = type.GetField("hiddenUnderApparelFor").GetValue(origin) as List<BodyPartGroupDef>;
+                    hiddenUnderApparelTag = type.GetField("hiddenUnderApparelTag").GetValue(origin) as List<string>;
+                    drawnInBed = (bool)type.GetField("drawnInBed").GetValue(origin);
+                    drawnOnGround = (bool)type.GetField("drawnOnGround").GetValue(origin);
+                    bodyPart = type.GetField("bodyPart").GetValue(origin) as BodyTypeDef;
+                    backstoryRequirement = type.GetField("backstoryRequirement").GetValue(origin) as BackstoryDef;
+                }
                 internal List<string> hiddenUnderApparelTag = new List<string>();
                 internal List<BodyPartGroupDef> hiddenUnderApparelFor = new List<BodyPartGroupDef>();
                 internal bool drawnInBed = true;
