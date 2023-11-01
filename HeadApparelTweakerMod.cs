@@ -73,13 +73,13 @@ namespace HeadApparelTweaker
                         postfix: new HarmonyMethod(typeof(HarmonyPatchA5.HarmonyPatchCE), nameof(HarmonyPatchA5.HarmonyPatchCE.CanCEDrawHair)));
                 }
             }
-            Harmony.Patch(HarmonyPatchA5.methodInfo,
+            Harmony.Patch(HarmonyPatchA5.methodInfoDrawApparel,
                 transpiler: new HarmonyMethod(typeof(HarmonyPatchA5), nameof(HarmonyPatchA5.TranDrawHeadHairDrawApparel)));
 
             //Unpatch VEF Patch Of DrawHeadApparel;
             if (IndexOfVEF != -1 && HATweakerSetting.CloseVEFDraw)
             {
-                Harmony.Unpatch(HarmonyPatchA5.methodInfo, HarmonyPatchType.All, "OskarPotocki.VFECore");
+                Harmony.Unpatch(HarmonyPatchA5.methodInfoDrawApparel, HarmonyPatchType.All, "OskarPotocki.VFECore");
                 Log.Warning(base.Content.PackageIdPlayerFacing + ":OskarPotocki.VFECore's Patch has removed");
             }
             if (IndexOfAR != -1 && b > IndexOfAR && HATweakerSetting.AlienRacePatch)
@@ -151,9 +151,9 @@ namespace HeadApparelTweaker
                         HatStartIndex = 0;
                     }
                     Rect rt3 = new Rect(r2.x, r2.y, r2.width, r2.height / 5);
-                    for (int i = HatStartIndex; i < HatStartIndex + 5 && i < list.Count; i++)
+                    for (int i = HatStartIndex; i < HatStartIndex + 5 && i < list1.Count; i++)
                     {
-                        ThingDef def = list1[i]; ;
+                        ThingDef def = list1[i];
                         GUI.color = new ColorInt(97, 108, 122).ToColor;
                         GUI.DrawTexture(new Rect(rt3.x, rt3.y + rt3.height, rt3.width, 4f), BaseContent.WhiteTex);
                         Widgets.DrawLineHorizontal(rt3.x + 0.85f * rt3.height, rt3.y + rt3.height / 2, rt3.width - 0.85f * rt3.height);
@@ -189,7 +189,7 @@ namespace HeadApparelTweaker
                             {
                                 Widgets.DrawHighlight(rect2.BottomHalf());
                             }
-                            Widgets.CheckboxLabeled(rect2.BottomHalf(), "Hide_Under_Roof".Translate(), ref HATweakerSetting.HeadgearDisplayType[def.defName].HideUnderRoof);
+                            Widgets.CheckboxLabeled(rect2.BottomHalf(), "Hide_Indoor".Translate(), ref HATweakerSetting.HeadgearDisplayType[def.defName].HideInDoor);
                         }
                         rect2.x += (rt3.width - 0.85f * rt3.height) / 5;
                         if (Mouse.IsOver(rect2.TopHalf()))
@@ -363,7 +363,7 @@ namespace HeadApparelTweaker
                     {
                         Widgets.DrawHighlight(main1);
                     }
-                    Widgets.CheckboxLabeled(main1, "Hide_Under_Roof".Translate(), ref HATweakerSetting.HeadgearDisplayType[choose].HideUnderRoof);
+                    Widgets.CheckboxLabeled(main1, "Hide_Indoor".Translate(), ref HATweakerSetting.HeadgearDisplayType[choose].HideInDoor);
                     main1.y += LabelHeigh;
                     if (Mouse.IsOver(main1))
                     {
@@ -610,11 +610,11 @@ namespace HeadApparelTweaker
                 one.x -= 2f * one.width;
                 one.width *= 3f;
                 one.y += one.height + 5f;
-                if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideUnderRoof".Translate()))
+                if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideInDoor".Translate()))
                 {
                     QuickSetting(list, 1, true, null);
                 }
-                if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideUnderRoof".Translate()))
+                if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideInDoor".Translate()))
                 {
                     QuickSetting(list, 1, false, null);
                 }
@@ -742,7 +742,7 @@ namespace HeadApparelTweaker
                     bool a = (bool)targetBool;
                     if (mode == 1)
                     {
-                        data.HideUnderRoof = a;
+                        data.HideInDoor = a;
                     }
                     else
                     if (mode == 2)
@@ -876,7 +876,7 @@ namespace HeadApparelTweaker
             public int? DisplayTypeInt;
 
             public bool HideNoFight = false;
-            public bool HideUnderRoof = false;
+            public bool HideInDoor = false;
 
             public bool AdvanceMode = false;
             public Vector2 size = Vector2.one;
@@ -896,7 +896,7 @@ namespace HeadApparelTweaker
                     DisplayTypeInt = 1;
                 }
                 Scribe_Values.Look(ref this.HideNoFight, "HideNoFight", false, true);
-                Scribe_Values.Look(ref this.HideUnderRoof, "HideUnderRoof", false, true);
+                Scribe_Values.Look(ref this.HideInDoor, "HideInDoor", false, true);
                 Scribe_Values.Look(ref this.HideInBed, "HideInBed", false, true);
                 Scribe_Values.Look(ref this.AdvanceMode, "AdvanceMode", false, true);
                 Scribe_Values.Look(ref this.size, "size", Vector2.one, true);
@@ -939,7 +939,7 @@ namespace HeadApparelTweaker
         public static List<string> HeadApparelAboveHair = new List<string>();
 
         public static List<string> HideNoFight = new List<string>();
-        public static List<string> HideUnderRoof = new List<string>();
+        public static List<string> HideInDoor = new List<string>();
         public static List<string> HideInBed = new List<string>();
 
         internal static RenderTexture Texture = null;
@@ -988,7 +988,7 @@ namespace HeadApparelTweaker
             HeadApparelNoHair.Remove(defName);
             HeadApparelUnderHair.Remove(defName);
             HeadApparelAboveHair.Remove(defName);
-            HideUnderRoof.Remove(defName);
+            HideInDoor.Remove(defName);
             HideNoFight.Remove(defName);
             HideInBed.Remove(defName);
 
@@ -1014,9 +1014,9 @@ namespace HeadApparelTweaker
             }
             if (data.DisplayTypeInt != 0)
             {
-                if (data.HideUnderRoof)
+                if (data.HideInDoor)
                 {
-                    HideUnderRoof.Add(defName);
+                    HideInDoor.Add(defName);
                 }
                 if (data.HideNoFight)
                 {
@@ -1035,7 +1035,7 @@ namespace HeadApparelTweaker
             HeadApparelNoGraphic.Clear();
             HeadApparelNoHair.Clear();
             HideNoFight.Clear();
-            HideUnderRoof.Clear();
+            HideInDoor.Clear();
         }
     }
 
@@ -1102,7 +1102,7 @@ namespace HeadApparelTweaker
 
     public static class HarmonyPatchA5
     {
-        internal static MethodInfo methodInfo = typeof(PawnRenderer).GetNestedTypes(AccessTools.all).
+        internal static MethodInfo methodInfoDrawApparel = typeof(PawnRenderer).GetNestedTypes(AccessTools.all).
             SelectMany((Type type) => type.GetMethods(AccessTools.all)).FirstOrDefault((MethodInfo x) => x.Name.Contains("DrawHeadHair") && x.Name.Contains("DrawApparel") && x.Name.Contains("2"));
         public static IEnumerable<CodeInstruction> TranDrawHeadHair(IEnumerable<CodeInstruction> codes)
         {
@@ -1400,10 +1400,10 @@ namespace HeadApparelTweaker
             if (!(___pawn == null || (HATweakerSetting.OnlyWorkOnColonist && !___pawn.IsColonist)))
             {
                 IntVec3 position = ___pawn.Position;
-                if (___pawn.Map != null && ___pawn.Position != null && ___pawn.Position.Roofed(___pawn.Map))
+                if (___pawn.Map != null && ___pawn.Position != null && !___pawn.Position.UsesOutdoorTemperature(___pawn.Map))
                 {
                     __instance.graphics.apparelGraphics.
-                        RemoveAll((ApparelGraphicRecord x) => !HATweakerCache.HideUnderRoof.NullOrEmpty<string>() && HATweakerCache.HideUnderRoof.
+                        RemoveAll((ApparelGraphicRecord x) => !HATweakerCache.HideInDoor.NullOrEmpty<string>() && HATweakerCache.HideInDoor.
                         Contains(x.sourceApparel.def.defName));
                 }
                 if (__instance.graphics.apparelGraphics.NullOrEmpty())
@@ -1522,13 +1522,13 @@ namespace HeadApparelTweaker
                 }
                 if (pawn.Map != null && pawn.apparel != null && pawn.apparel.AnyApparel)
                 {
-                    if (ago.Roofed(pawn.Map) && !now.Roofed(pawn.Map))
+                    if (ago.UsesOutdoorTemperature(pawn.Map) && !now.UsesOutdoorTemperature(pawn.Map))
                     {
                         pawn.apparel.Notify_ApparelChanged();
                     }
                     else
 
-                        if (!ago.Roofed(pawn.Map) && now.Roofed(pawn.Map))
+                        if (!ago.UsesOutdoorTemperature(pawn.Map) && now.UsesOutdoorTemperature(pawn.Map))
                     {
                         pawn.apparel.Notify_ApparelChanged();
                     }
@@ -1616,7 +1616,7 @@ namespace HeadApparelTweaker
                 }
                 if (y != 7)
                 {
-                    Log.Warning("TranCEDrawHeadHairDrawApparel(4)-Fail");
+                    Log.Warning("Head apparel tweaker: TranCEDrawHeadHairDrawApparel(4)-Fail");
                 }
             }
 
@@ -1657,6 +1657,20 @@ namespace HeadApparelTweaker
 
         public class HarmonyPatchAlienRace
         {
+            private static readonly Type type1 = AccessTools.TypeByName("AlienRace.AlienPartGenerator+BodyAddon");
+            private static readonly BindingFlags Instance = BindingFlags.NonPublic | BindingFlags.Instance;
+            private static readonly MethodInfo VisibleForPostureOf = type1.GetMethod("VisibleForPostureOf", Instance);
+            private static readonly MethodInfo VisibleForBackstoryOf = type1.GetMethod("VisibleForBackstoryOf", Instance);
+            private static readonly MethodInfo VisibleForRotStageOf = type1.GetMethod("VisibleForRotStageOf", Instance);
+            private static readonly MethodInfo RequiredBodyPartExistsFor = type1.GetMethod("RequiredBodyPartExistsFor", Instance);
+            private static readonly MethodInfo VisibleForGenderOf = type1.GetMethod("VisibleForGenderOf", Instance);
+            private static readonly MethodInfo VisibleForBodyTypeOf = type1.GetMethod("VisibleForBodyTypeOf", Instance);
+            private static readonly MethodInfo VisibleForDrafted = type1.GetMethod("VisibleForDrafted", Instance);
+            private static readonly MethodInfo VisibleForJob = type1.GetMethod("VisibleForJob");
+            private static readonly MethodInfo VisibleWithGene = type1.GetMethod("VisibleWithGene");
+            private static readonly MethodInfo VisibleForRace = type1.GetMethod("VisibleForRace");
+            private static readonly FieldInfo HUAT = type1.GetField("hiddenUnderApparelTag");
+            private static readonly FieldInfo HUAF = type1.GetField("hiddenUnderApparelFor");
             public HarmonyPatchAlienRace(Harmony harmony)
             {
                 if (HATweakerMod.IndexOfAR != -1)
@@ -1675,6 +1689,7 @@ namespace HeadApparelTweaker
 
                 MethodInfo sort = AccessTools.Method(typeof(HarmonyPatchAlienRace), nameof(CanDrawAddon_1));
                 List<CodeInstruction> list = codes.ToList();
+                int a = 0;
                 for (int i = 0; i < list.Count; i++)
                 {
                     CodeInstruction code = list[i];
@@ -1686,30 +1701,28 @@ namespace HeadApparelTweaker
                     if (code.opcode == OpCodes.Call && code.operand.ToStringSafe().IndexOf("CanDrawAddon") != -1)
                     {
                         yield return new CodeInstruction(OpCodes.Callvirt, sort);
+                        a++;
                     }
                     else
                     {
                         yield return code;
                     }
                 }
+                if (a==0||a!=1)
+                {
+                    Log.Warning("Head apparel tweaker: Transpiler Alien Race-Failed");
+                }
             }
+
             public static bool CanDrawAddon_1(object bodyaddon, Pawn pawn)
             {
                 if (bodyaddon is AlienRace.AlienPartGenerator.BodyAddon)
                 {
-                    Addons_1 addon = new Addons_1(bodyaddon);
-                    bool draw;
+                    AlienRace.ExtendedGraphics.ExtendedGraphicsPawnWrapper alienPawn = new AlienRace.ExtendedGraphics.ExtendedGraphicsPawnWrapper(pawn);
                     bool toDraw = false;
-                    bool toDraw1 = false;
-                    if (addon.bodyPart != null)
-                    {
-                        draw = pawn.health.hediffSet.GetNotMissingParts().Any(bpr => bpr.untranslatedCustomLabel == addon.bodyPart.defName || bpr.def.defName == addon.bodyPart.defName);
-                    }
-                    else
-                    {
-                        draw = true;
-                    }
-                    if (addon.hiddenUnderApparelTag.NullOrEmpty() && addon.hiddenUnderApparelFor.NullOrEmpty())
+                    List<string> hiddenUnderApparelTag = (List<string>)HUAT.GetValue(bodyaddon);
+                    List<BodyPartGroupDef> hiddenUnderApparelFor = (List<BodyPartGroupDef>)HUAF.GetValue(bodyaddon);
+                    if (!alienPawn.HasApparelGraphics() || (hiddenUnderApparelTag.NullOrEmpty() && hiddenUnderApparelFor.NullOrEmpty()))
                     {
                         toDraw = true;
                     }
@@ -1736,9 +1749,9 @@ namespace HeadApparelTweaker
                         if (!apparels.NullOrEmpty() && !(pawn == null || (HATweakerSetting.OnlyWorkOnColonist && !pawn.IsColonist)))
                         {
                             IntVec3 position = pawn.Position;
-                            if (pawn.Map != null && pawn.Position != null && pawn.Position.Roofed(pawn.Map))
+                            if (pawn.Map != null && pawn.Position != null && !pawn.Position.UsesOutdoorTemperature(pawn.Map))
                             {
-                                apparels.RemoveAll(x => !HATweakerCache.HideUnderRoof.NullOrEmpty() && HATweakerCache.HideUnderRoof.
+                                apparels.RemoveAll(x => !HATweakerCache.HideInDoor.NullOrEmpty() && HATweakerCache.HideInDoor.
                                 Contains(x.def.defName));
                             }
 
@@ -1754,47 +1767,41 @@ namespace HeadApparelTweaker
                                 Contains(x.def.defName));
                             }
                         }
-                        if (!apparels.Any((Apparel ap) => ap.def.apparel.bodyPartGroups.Any((BodyPartGroupDef bpgd) => addon.hiddenUnderApparelFor.Contains(bpgd)) || ap.def.apparel.tags.Any((string s) => addon.hiddenUnderApparelTag.Contains(s))))
+                        if (!apparels.Any((Apparel ap) => ap.def.apparel.bodyPartGroups.Any((BodyPartGroupDef bpgd) => hiddenUnderApparelFor.Contains(bpgd)) || ap.def.apparel.tags.Any((string s) => hiddenUnderApparelTag.Contains(s))))
                         {
                             toDraw = true;
                         }
                     }
                     if (toDraw)
                     {
-                        if (pawn.GetPosture() == PawnPosture.Standing || (pawn.InBed() && addon.drawnInBed) || addon.drawnOnGround)
+                        if (VisibleForPostureOf != null
+                            && VisibleForBackstoryOf != null
+                            && VisibleForRotStageOf != null
+                            && RequiredBodyPartExistsFor != null
+                            && VisibleForGenderOf != null
+                            && VisibleForBodyTypeOf != null
+                            && VisibleForDrafted != null
+                            && VisibleForJob != null
+                            && VisibleWithGene != null)
                         {
-                            return toDraw1 = true;
-                        }
-                        if (toDraw1)
-                        {
-                            if (addon.backstoryRequirement != null || pawn.story.AllBackstories.Any(b => b == addon.backstoryRequirement))
+                            if ((bool)VisibleForPostureOf.Invoke(bodyaddon, new object[] { alienPawn })
+                                && (bool)VisibleForBackstoryOf.Invoke(bodyaddon, new object[] { alienPawn })
+                                && (bool)VisibleForRotStageOf.Invoke(bodyaddon, new object[] { alienPawn })
+                                && (bool)RequiredBodyPartExistsFor.Invoke(bodyaddon, new object[] { alienPawn })
+                                && (bool)VisibleForGenderOf.Invoke(bodyaddon, new object[] { alienPawn })
+                                && (bool)VisibleForBodyTypeOf.Invoke(bodyaddon, new object[] { alienPawn })
+                                && (bool)VisibleForDrafted.Invoke(bodyaddon, new object[] { alienPawn })
+                                && (bool)VisibleForJob.Invoke(bodyaddon, new object[] { alienPawn })
+                                && (bool)VisibleWithGene.Invoke(bodyaddon, new object[] { alienPawn })
+                                && VisibleForRace != null)
                             {
-                                return draw;
-                            }
+                                return (bool)VisibleForRace.Invoke(bodyaddon, new object[] { alienPawn });
+                            };
                         }
                     }
-                    return false;
                 }
                 return false;
-            }
-            private class Addons_1
-            {
-                public Addons_1(object origin)
-                {
-                    Type type = origin.GetType();
-                    hiddenUnderApparelFor = type.GetField("hiddenUnderApparelFor").GetValue(origin) as List<BodyPartGroupDef>;
-                    hiddenUnderApparelTag = type.GetField("hiddenUnderApparelTag").GetValue(origin) as List<string>;
-                    drawnInBed = (bool)type.GetField("drawnInBed").GetValue(origin);
-                    drawnOnGround = (bool)type.GetField("drawnOnGround").GetValue(origin);
-                    bodyPart = type.GetField("bodyPart").GetValue(origin) as BodyTypeDef;
-                    backstoryRequirement = type.GetField("backstoryRequirement").GetValue(origin) as BackstoryDef;
-                }
-                internal List<string> hiddenUnderApparelTag = new List<string>();
-                internal List<BodyPartGroupDef> hiddenUnderApparelFor = new List<BodyPartGroupDef>();
-                internal bool drawnInBed = true;
-                internal bool drawnOnGround = true;
-                internal BackstoryDef backstoryRequirement;
-                internal BodyTypeDef bodyPart;
+
             }
         }
     }
