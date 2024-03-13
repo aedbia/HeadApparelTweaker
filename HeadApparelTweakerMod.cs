@@ -32,6 +32,7 @@ namespace HeadApparelTweaker
         private static bool BarChange = false;
         private static int HATweakerModIndex = -1;
         private static Vector2 scrollPosition = Vector2.zero;
+        internal static bool CELoad = false;
         private static int ChangeBar
         {
             get { return changeBarInt; }
@@ -69,7 +70,8 @@ namespace HeadApparelTweaker
             }
             else if (a < HATweakerModIndex)
             {
-                Harmony.Patch(AccessTools.Method(typeof(PawnRenderer), "DrawHeadHair"), transpiler: new HarmonyMethod(typeof(HarmonyPatchA5.HarmonyPatchCE), nameof(HarmonyPatchA5.HarmonyPatchCE.CETranDrawHeadHair)));
+                CELoad = true;
+                Harmony.Patch(AccessTools.Method(typeof(PawnRenderer), "DrawHeadHair"), transpiler: new HarmonyMethod(typeof(HarmonyPatchA5), nameof(HarmonyPatchA5.TranDrawHeadHair_1)));
                 MethodInfo info = AccessTools.Method(AccessTools.TypeByName("CombatExtended.HarmonyCE.Harmony_PawnRenderer+Harmony_PawnRenderer_DrawHeadHair"), "DrawHeadApparel");
                 if (info != null)
                 {
@@ -720,46 +722,7 @@ namespace HeadApparelTweaker
                 {
                     SettingOpen = false;
                 }
-                Widgets.DrawWindowBackground(rect0);
-                List<string> AllAlienBodyAddon = HATweakerCache.AllAlienBodyAddon;
-                if (!AllAlienBodyAddon.NullOrEmpty())
-                {
-                    int count = AllAlienBodyAddon.Count(a => a.IndexOf(search) != -1);
-                    Rect rect = new Rect(rect0.x + 5f, rect0.y + 5f, rect0.width - 10f, count * 30 + 10f);
-                    Widgets.BeginScrollView(rect0, ref scrollPosition, rect);
-                    Rect show = new Rect(rect0.x + 10f, rect0.y + 5f, (rect.width - 20) / 3, 30f);
-                    foreach (string x in AllAlienBodyAddon)
-                    {
-                        if (x.IndexOf(search) != -1)
-                        {
-                            Widgets.Label(show, x);
-                            show.x += rect.width / 3;
-                            if (HATweakerSetting.AlienHeadBodyAddons == null)
-                            {
-                                HATweakerSetting.AlienHeadBodyAddons = new List<string>();
-                            }
-                            bool isHeadAddon = !HATweakerSetting.AlienHeadBodyAddons.NullOrEmpty() && HATweakerSetting.AlienHeadBodyAddons.Contains(x);
-                            if (Widgets.RadioButtonLabeled(show, "Show_With_Hair".Translate(), isHeadAddon))
-                            {
-                                if (!isHeadAddon)
-                                {
-                                    HATweakerSetting.AlienHeadBodyAddons.Add(x);
-                                }
-                            }
-                            show.x += rect.width / 3;
-                            if (Widgets.RadioButtonLabeled(show, "No_Show_With_Hair".Translate(), !isHeadAddon))
-                            {
-                                if (isHeadAddon)
-                                {
-                                    HATweakerSetting.AlienHeadBodyAddons.Remove(x);
-                                }
-                            }
-                            show.x = rect0.x + 10f;
-                            show.y += 30;
-                        }
-                    }
-                    Widgets.EndScrollView();
-                }
+                HarmonyPatchA5.HarmonyPatchAlienRace.DrawAlienRaceAboutSetting(rect0, search, ref scrollPosition);
             }
             //Log.Warning(Apparel.def.label);
 
@@ -1030,8 +993,10 @@ namespace HeadApparelTweaker
         public static List<string> HideNoFight = new List<string>();
         public static List<string> HideInDoor = new List<string>();
         public static List<string> HideInBed = new List<string>();
-        public static List<string> AllAlienBodyAddon = new List<string>();
         public static List<string> HeadApparelNoBeard = new List<string>();
+
+        public static Dictionary<int, string> allAddons = new Dictionary<int, string>();
+
         internal static RenderTexture Texture = null;
         public static List<string> Layers
         {
@@ -1056,9 +1021,9 @@ namespace HeadApparelTweaker
             }
             if (HATweakerMod.IndexOfAR != -1 && HATweakerSetting.AlienRacePatch)
             {
-                if (AllAlienBodyAddon == null)
+                if (allAddons == null)
                 {
-                    AllAlienBodyAddon = new List<string>();
+                    allAddons = new Dictionary<int, string>();
                 }
                 new HarmonyPatchA5.HarmonyPatchAlienRace.AlienBodyAddonCollector();
             }
@@ -1253,8 +1218,7 @@ namespace HeadApparelTweaker
         public static IEnumerable<CodeInstruction> TranDrawHeadHair(IEnumerable<CodeInstruction> codes)
         {
             int x = 0;
-            int y = 0;
-            List<CodeInstruction> list = codes.ToList();
+            List<CodeInstruction> list = TranDrawHeadHair_1(codes).ToList();
             for (int a = 0; a < list.Count - 1; a++)
             {
                 if (list[a].opcode == OpCodes.Ldloc_2 && list[a + 1].opcode == OpCodes.Brfalse_S && x == 0)
@@ -1268,6 +1232,18 @@ namespace HeadApparelTweaker
                     x += 1;
                 }
                 else
+                {
+                    yield return list[a];
+                }
+            }
+            yield return list.LastOrDefault();
+        }
+        public static IEnumerable<CodeInstruction> TranDrawHeadHair_1(IEnumerable<CodeInstruction> codes)
+        {
+            int y = 0;
+            List<CodeInstruction> list = codes.ToList();
+            for (int a = 0; a < list.Count - 1; a++)
+            {
                 if (list[a].opcode == OpCodes.Ldloc_3 && list[a + 1].opcode == OpCodes.Brfalse && y == 0)
                 {
                     //Log.Warning("aaaaaaaaaaaaaaaa");
@@ -1401,13 +1377,6 @@ namespace HeadApparelTweaker
                     patch4 = false;
                 }
                 else
-                if ((code.opcode == OpCodes.Ldloc_2 || code.opcode == OpCodes.Ldloc_1) && a > 1 && CodeInstructionExtensions.Is(list[a - 1], OpCodes.Ldfld, AccessTools.Field(type, "quat")))
-                {
-                    //Log.Warning("adadasd");
-                    yield return code;
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), nameof(getMaterial)));
-                }
-                else
                 {
                     yield return code;
                 }
@@ -1416,13 +1385,6 @@ namespace HeadApparelTweaker
             {
                 Log.Warning("TranDrawHeadHairDrawApparel(1)-Fail");
             }
-        }
-
-        public static Material getMaterial(Material material)
-        {
-            //material.shader = ShaderDatabase.Transparent;
-            //Log.Warning(material.shader.name + material.passCount);
-            return material;
         }
 
         public static Quaternion SetRotation(Quaternion quat, Rot4 headFacing, ApparelGraphicRecord graphicRecord, Pawn pawn)
@@ -1474,11 +1436,12 @@ namespace HeadApparelTweaker
         public static Vector3 GetOnHeadLocOffset(Vector3 onHeadLoc, Rot4 headFacing, Quaternion quat, ApparelGraphicRecord graphicRecord, Pawn pawn)
         {
             Vector3 a = new Vector3(onHeadLoc.x, onHeadLoc.y, onHeadLoc.z);
-            if (!graphicRecord.sourceApparel.def.apparel.hatRenderedFrontOfFace && !HATweakerCache.HeadApparelNoGraphic.Contains(graphicRecord.sourceApparel.def.defName))
+            if (!graphicRecord.sourceApparel.def.apparel.hatRenderedFrontOfFace && (HATweakerCache.HeadApparelNoGraphic.NullOrEmpty() || !HATweakerCache.HeadApparelNoGraphic.Contains(graphicRecord.sourceApparel.def.defName)))
             {
                 if (!graphicRecord.sourceApparel.def.apparel.forceRenderUnderHair)
                 {
                     a.y += 0.00289575267f;
+                    //Log.Warning("aaaaaaaaaa");
                 }
             }
             if (!(pawn == null || (HATweakerSetting.OnlyWorkOnColonist_2 && !pawn.IsColonist)))
@@ -1515,7 +1478,7 @@ namespace HeadApparelTweaker
                         Vector2 offset = data.GetOffset(headFacing);
                         Vector3 vector3 = quat * (new Vector3(offset.x, 0, offset.y));
                         a.x += vector3.x;
-                        a.z += vector3.y;
+                        a.z += vector3.z;
                     }
                 }
             }
@@ -1752,35 +1715,8 @@ namespace HeadApparelTweaker
                 }
             }
         }
-
-
-
         public static class HarmonyPatchCE
         {
-            public static IEnumerable<CodeInstruction> CETranDrawHeadHair(IEnumerable<CodeInstruction> codes)
-            {
-                int y = 0;
-                List<CodeInstruction> list = codes.ToList();
-                for (int a = 0; a < list.Count - 1; a++)
-                {
-                    if (list[a].opcode == OpCodes.Ldloc_3 && list[a + 1].opcode == OpCodes.Brfalse && y == 0)
-                    {
-                        //Log.Warning("aaaaaaaaaaaaaaaa");
-                        yield return CodeInstructionExtensions.MoveLabelsFrom(new CodeInstruction(OpCodes.Ldarg_0), list[a]);
-                        yield return new CodeInstruction(OpCodes.Ldarg_0);
-                        yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(PawnRenderer), "pawn"));
-                        yield return new CodeInstruction(OpCodes.Ldloc_3);
-                        yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), nameof(CanBeardDisplay)));
-                        y += 1;
-
-                    }
-                    else
-                    {
-                        yield return list[a];
-                    }
-                }
-                yield return list.LastOrDefault();
-            }
             public static IEnumerable<CodeInstruction> TranCEDrawHeadHairDrawApparel(IEnumerable<CodeInstruction> codes, ILGenerator generator)
             {
                 Label l1 = generator.DefineLabel();
@@ -1822,12 +1758,6 @@ namespace HeadApparelTweaker
                         y++;
                     }
                     else
-                    if (code.opcode == OpCodes.Stloc_S && operand == "UnityEngine.Material (15)")
-                    {
-                        yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchCE), nameof(setMaterial)));
-                        yield return code;
-                    }
-                    else
                     if (a < list.Count - 20 && code.opcode == OpCodes.Ldloc_S && operand == "UnityEngine.Mesh (6)" && list[a + 1].opcode == OpCodes.Ldloc_S
                         && (list[a + 1].operand.ToStringSafe() == "UnityEngine.Matrix4x4 (17)" || list[a + 1].operand.ToStringSafe() == "UnityEngine.Matrix4x4 (19)"))
                     {
@@ -1865,13 +1795,6 @@ namespace HeadApparelTweaker
                 {
                     Log.Warning("Head apparel tweaker: TranCEDrawHeadHairDrawApparel(4)-Fail");
                 }
-            }
-
-            public static Material setMaterial(Material material)
-            {
-                //Log.Warning(material.passCount + material.shader.name);
-                material.shader = ShaderDatabase.Transparent;
-                return material;
             }
 
             public static bool AreadyHasGraphic(ApparelGraphicRecord apparel)
@@ -1913,6 +1836,8 @@ namespace HeadApparelTweaker
             private static readonly MethodInfo VisibleForGenderOf = type1.GetMethod("VisibleForGenderOf", Instance);
             private static readonly MethodInfo VisibleForBodyTypeOf = type1.GetMethod("VisibleForBodyTypeOf", Instance);
             private static readonly MethodInfo VisibleForDrafted = type1.GetMethod("VisibleForDrafted", Instance);
+
+            private static Dictionary<string, string> raceName = new Dictionary<string, string>();
             public HarmonyPatchAlienRace(Harmony harmony)
             {
                 if (HATweakerMod.IndexOfAR != -1)
@@ -1924,6 +1849,61 @@ namespace HeadApparelTweaker
                     {
                         harmony.Patch(info, transpiler: new HarmonyMethod(AccessTools.Method(typeof(HarmonyPatchAlienRace), nameof(TranCanDrawAddon))));
                     }
+                }
+            }
+            public static void DrawAlienRaceAboutSetting(Rect rect0, string search, ref Vector2 scrollPosition)
+            {
+                Widgets.DrawWindowBackground(rect0);
+                List<string> AllAlienBodyAddon = HATweakerCache.allAddons.Values.ToList();
+                if (!AllAlienBodyAddon.NullOrEmpty())
+                {
+                    int count = AllAlienBodyAddon.Count(a => a.IndexOf(search) != -1);
+                    Rect rect = new Rect(rect0.x + 5f, rect0.y + 5f, rect0.width - 20f, count * 30 + 10f);
+                    Widgets.BeginScrollView(rect0, ref scrollPosition, rect);
+                    Rect show = new Rect(rect0.x + 10f, rect0.y + 5f, (rect.width - 10) / 2, 30f);
+                    for (int str = 0; str < AllAlienBodyAddon.Count; str++)
+                    {
+                        string x = AllAlienBodyAddon[str];
+                        if (x.IndexOf(search) != -1)
+                        {
+                            string a;
+                            if (raceName.ContainsKey(x))
+                            {
+                                a = raceName[x];
+                            }
+                            else
+                            {
+                                a = x;
+                            }
+                            Widgets.Label(show, a);
+                            show.x += rect.width / 2;
+                            show.width /= 2;
+                            if (HATweakerSetting.AlienHeadBodyAddons == null)
+                            {
+                                HATweakerSetting.AlienHeadBodyAddons = new List<string>();
+                            }
+                            bool isHeadAddon = !HATweakerSetting.AlienHeadBodyAddons.NullOrEmpty() && HATweakerSetting.AlienHeadBodyAddons.Contains(x);
+                            if (Widgets.RadioButtonLabeled(show, "Show_With_Hair".Translate(), isHeadAddon))
+                            {
+                                if (!isHeadAddon)
+                                {
+                                    HATweakerSetting.AlienHeadBodyAddons.Add(x);
+                                }
+                            }
+                            show.x += rect.width / 4;
+                            if (Widgets.RadioButtonLabeled(show, "No_Show_With_Hair".Translate(), !isHeadAddon))
+                            {
+                                if (isHeadAddon)
+                                {
+                                    HATweakerSetting.AlienHeadBodyAddons.Remove(x);
+                                }
+                            }
+                            show.x = rect0.x + 10f;
+                            show.width *= 2;
+                            show.y += 30;
+                        }
+                    }
+                    Widgets.EndScrollView();
                 }
             }
             public static IEnumerable<CodeInstruction> TranCanDrawAddon(IEnumerable<CodeInstruction> codes)
@@ -1955,7 +1935,6 @@ namespace HeadApparelTweaker
                     Log.Warning("Head apparel tweaker: Transpiler Alien Race-Failed");
                 }
             }
-
             public static bool CanDrawAddon_1(object bodyaddon, Pawn pawn)
             {
                 if (bodyaddon is AlienRace.AlienPartGenerator.BodyAddon)
@@ -1966,7 +1945,8 @@ namespace HeadApparelTweaker
                     List<string> hiddenUnderApparelTag = addon.hiddenUnderApparelTag;
                     List<BodyPartGroupDef> hiddenUnderApparelFor = addon.hiddenUnderApparelFor;
                     PawnRenderer renderer = pawn.Drawer.renderer;
-                    if (IsHairBodyAddon(addon.Name))
+                    //Log.Warning(addon.GetHashCode().ToString() + addon.path);
+                    if (IsHairBodyAddon(addon.GetHashCode()))
                     {
                         if (!(renderer.graphics.apparelGraphics.
                         Any(x => !HATweakerCache.HeadApparelNoHair.NullOrEmpty() && HATweakerCache.HeadApparelNoHair.Contains(x.sourceApparel.def.defName))))
@@ -2016,12 +1996,14 @@ namespace HeadApparelTweaker
                 return false;
 
             }
-
-
-
-            private static bool IsHairBodyAddon(string name)
+            private static bool IsHairBodyAddon(int hashCode)
             {
-                return !HATweakerSetting.AlienHeadBodyAddons.NullOrEmpty() && HATweakerSetting.AlienHeadBodyAddons.Contains(name);
+                if (HATweakerCache.allAddons.ContainsKey(hashCode))
+                {
+                    string a = HATweakerCache.allAddons[hashCode];
+                    return !HATweakerSetting.AlienHeadBodyAddons.NullOrEmpty() && HATweakerSetting.AlienHeadBodyAddons.Contains(a);
+                }
+                return false;
             }
             public class AlienBodyAddonCollector
             {
@@ -2037,10 +2019,49 @@ namespace HeadApparelTweaker
                             var defBodyAddon = def.alienRace.generalSettings.alienPartGenerator.bodyAddons;
                             if (!defBodyAddon.NullOrEmpty())
                             {
+                                int x = 0;
                                 foreach (var obj in defBodyAddon)
                                 {
-                                    //Log.Warning(obj.Name);
-                                    HATweakerCache.AllAlienBodyAddon.Add(obj.Name);
+                                    string a = def.defName + ":";
+                                    string b = def.label + ":";
+                                    if (obj.GetPath().NullOrEmpty())
+                                    {
+                                        if (obj.Name.NullOrEmpty())
+                                        {
+                                            a += "Can't find path :";
+                                            b += "Can't find path :";
+                                            if (obj.bodyPart == null)
+                                            {
+                                                a += obj.bodyPartLabel ?? obj.ColorChannel;
+                                                b += obj.bodyPartLabel ?? obj.ColorChannel;
+                                            }
+                                            else
+                                            {
+                                                a += obj.bodyPart.defName;
+                                                b += obj.bodyPart.label;
+                                            }
+
+                                        }
+                                        else
+                                        {
+                                            a += obj.Name;
+                                            b += obj.Name;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        a += obj.GetPath();
+                                        b += obj.GetPath();
+                                    }
+                                    if (!HATweakerCache.allAddons.NullOrEmpty() && HATweakerCache.allAddons.ContainsValue(a))
+                                    {
+                                        a += x.ToString();
+                                        b += x.ToString();
+                                        x++;
+                                    }
+                                    //Log.Warning(obj.GetHashCode().ToString() + obj.path);
+                                    HATweakerCache.allAddons.SetOrAdd(obj.GetHashCode(), a);
+                                    raceName.SetOrAdd(a, b);
                                 }
                             }
                         }
