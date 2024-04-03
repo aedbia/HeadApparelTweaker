@@ -1255,7 +1255,12 @@ namespace HeadApparelTweaker
                     y += 1;
 
                 }
-                else
+                else if (a > 10 && a < list.Count - 10 && 
+                    (!(list[a-1].opcode == OpCodes.Brfalse_S&& list[a].opcode == OpCodes.Ldc_I4_0&& list[a + 1].opcode == OpCodes.Stloc_3)
+                    ||!(list[a - 2].opcode == OpCodes.Brfalse_S && list[a-1].opcode == OpCodes.Ldc_I4_0 && list[a].opcode == OpCodes.Stloc_3)))
+                {
+                    yield return list[a];
+                }else
                 {
                     yield return list[a];
                 }
@@ -1271,12 +1276,12 @@ namespace HeadApparelTweaker
                 {
                     return false;
                 }
-                if (renderer.graphics.apparelGraphics.
+                if (origin&&renderer.graphics.apparelGraphics.
                     Any(x => !HATweakerCache.HeadApparelNoBeard.NullOrEmpty() && HATweakerCache.HeadApparelNoBeard.Contains(x.sourceApparel.def.defName)))
                 {
                     return false;
                 }
-                return true;
+                return origin;
             }
             else
             {
@@ -2009,62 +2014,68 @@ namespace HeadApparelTweaker
             {
                 public AlienBodyAddonCollector()
                 {
-                    foreach (ThingDef_AlienRace def in DefDatabase<ThingDef_AlienRace>.AllDefs)
+                    try
                     {
-                        if (def.alienRace != null
-                            && def.alienRace.generalSettings != null
-                            && def.alienRace.generalSettings.alienPartGenerator != null
-                            && !def.alienRace.generalSettings.alienPartGenerator.bodyAddons.NullOrEmpty())
+                        foreach (ThingDef_AlienRace def in DefDatabase<ThingDef_AlienRace>.AllDefs)
                         {
-                            var defBodyAddon = def.alienRace.generalSettings.alienPartGenerator.bodyAddons;
-                            if (!defBodyAddon.NullOrEmpty())
+                            if (def.alienRace != null
+                                && def.alienRace.generalSettings != null
+                                && def.alienRace.generalSettings.alienPartGenerator != null
+                                && !def.alienRace.generalSettings.alienPartGenerator.bodyAddons.NullOrEmpty())
                             {
-                                int x = 0;
-                                foreach (var obj in defBodyAddon)
+                                var defBodyAddon = def.alienRace.generalSettings.alienPartGenerator.bodyAddons;
+                                if (!defBodyAddon.NullOrEmpty())
                                 {
-                                    string a = def.defName + ":";
-                                    string b = def.label + ":";
-                                    if (obj.GetPath().NullOrEmpty())
+                                    int x = 0;
+                                    foreach (var obj in defBodyAddon)
                                     {
-                                        if (obj.Name.NullOrEmpty())
+                                        string a = def.defName + ":";
+                                        string b = def.label + ":";
+                                        if (obj.GetPath().NullOrEmpty())
                                         {
-                                            a += "Can't find path :";
-                                            b += "Can't find path :";
-                                            if (obj.bodyPart == null)
+                                            if (obj.Name.NullOrEmpty())
                                             {
-                                                a += obj.bodyPartLabel ?? obj.ColorChannel;
-                                                b += obj.bodyPartLabel ?? obj.ColorChannel;
+                                                a += "Can't find path :";
+                                                b += "Can't find path :";
+                                                if (obj.bodyPart == null)
+                                                {
+                                                    a += obj.bodyPartLabel ?? obj.ColorChannel;
+                                                    b += obj.bodyPartLabel ?? obj.ColorChannel;
+                                                }
+                                                else
+                                                {
+                                                    a += obj.bodyPart.defName;
+                                                    b += obj.bodyPart.label;
+                                                }
+
                                             }
                                             else
                                             {
-                                                a += obj.bodyPart.defName;
-                                                b += obj.bodyPart.label;
+                                                a += obj.Name;
+                                                b += obj.Name;
                                             }
-
                                         }
                                         else
                                         {
-                                            a += obj.Name;
-                                            b += obj.Name;
+                                            a += obj.GetPath();
+                                            b += obj.GetPath();
                                         }
+                                        if (!HATweakerCache.allAddons.NullOrEmpty() && HATweakerCache.allAddons.ContainsValue(a))
+                                        {
+                                            a += x.ToString();
+                                            b += x.ToString();
+                                            x++;
+                                        }
+                                        //Log.Warning(obj.GetHashCode().ToString() + obj.path);
+                                        HATweakerCache.allAddons.SetOrAdd(obj.GetHashCode(), a);
+                                        raceName.SetOrAdd(a, b);
                                     }
-                                    else
-                                    {
-                                        a += obj.GetPath();
-                                        b += obj.GetPath();
-                                    }
-                                    if (!HATweakerCache.allAddons.NullOrEmpty() && HATweakerCache.allAddons.ContainsValue(a))
-                                    {
-                                        a += x.ToString();
-                                        b += x.ToString();
-                                        x++;
-                                    }
-                                    //Log.Warning(obj.GetHashCode().ToString() + obj.path);
-                                    HATweakerCache.allAddons.SetOrAdd(obj.GetHashCode(), a);
-                                    raceName.SetOrAdd(a, b);
                                 }
                             }
                         }
+                    }finally
+                    {
+                        Log.Warning("HAT_AlienBodyAddonsCollectFinish");
                     }
                 }
             }
