@@ -15,21 +15,20 @@ namespace HeadApparelTweaker
     {
         public static HATweakerSetting setting;
         private static int HATweakerModIndex = -1;
-        private string choose = "";
+        internal static string choose = "";
         private string search = "";
         private bool BarChange = false;
         private int ChangeBarInt = 0;
         private int HatStartIndex = 0;
         private float IndexCount = 0;
         private Vector2 loc = Vector2.zero;
-        private bool InGame = false;
         private static Rot4 direction = Rot4.South;
         internal static string PawnName = "";
         internal static Pawn pawn = null;
         internal static Apparel apparel = null;
-        internal static ApparelGraphicRecord? apparelGraphicRecord = null;
         private Vector2 position0 = Vector2.zero;
         private float height0;
+        internal static bool InGameSetting = false;
 
         private int ChangeBar
         {
@@ -184,6 +183,7 @@ namespace HeadApparelTweaker
             else
             if (ChangeBar == 1)
             {
+                InGameSetting = Find.CurrentMap != null && Find.CurrentMap.mapPawns != null && Find.CurrentMap.mapPawns.ColonistsSpawnedCount > 0;
                 Rect outRect = rect0.LeftPart(0.3f);
                 Widgets.DrawWindowBackground(outRect);
                 Rect viewRect = new Rect(-3f, -3f, outRect.width - 26f, (LabelHeigh + 5f) * IndexCount + 3f);
@@ -214,7 +214,6 @@ namespace HeadApparelTweaker
                 }
                 IndexCount = se;
                 Widgets.EndScrollView();
-                InGame = Current.Game != null && Current.Game.CurrentMap != null && Current.Game.CurrentMap.mapPawns != null && !Current.Game.CurrentMap.mapPawns.AllPawns.NullOrEmpty();
                 //MainSetting
                 ThingDef def = list.FirstOrDefault(x => x.defName == choose);
                 HATweakerSetting.SingleInit(def);
@@ -378,12 +377,12 @@ namespace HeadApparelTweaker
                     }
                 }
                 Widgets.EndScrollView();
-
+                LabelHeigh = 30f;
                 height0 = main1.y + LabelHeigh;
                 Rect main2 = main.RightHalf();
                 Rect main3 = new Rect(main2.x, main2.y, main2.width, main2.height - LabelHeigh - 5f);
                 Widgets.DrawWindowBackground(main3);
-                /*if (InGame)
+                if (InGameSetting)
                 {
                     List<Pawn> Colonists = Current.Game.CurrentMap.mapPawns.FreeColonists;
                     if (!Colonists.NullOrEmpty())
@@ -411,9 +410,12 @@ namespace HeadApparelTweaker
                             }
                             Find.WindowStack.Add(new FloatMenu(Options));
                         }
-
                         if (pawn != null && pawn.Name.ToStringFull != PawnName)
                         {
+                            if (pawn.apparel != null)
+                            {
+                                pawn.apparel.Notify_ApparelChanged();
+                            }
                             pawn = Colonists.FirstOrDefault(x => x.Name.ToStringFull == PawnName);
                             if (pawn == null)
                             {
@@ -432,7 +434,7 @@ namespace HeadApparelTweaker
                         HATweakerCache.texture = null;
                     }
                 }
-                if (!choose.NullOrEmpty() && pawn != null && InGame)
+                if (!choose.NullOrEmpty() && pawn != null && InGameSetting)
                 {
                     if (apparel != null)
                     {
@@ -440,18 +442,13 @@ namespace HeadApparelTweaker
                         {
                             apparel = HATweakerUtility.NewApparel(choose);
                         }
-                        if (apparelGraphicRecord == null || ((ApparelGraphicRecord)apparelGraphicRecord).sourceApparel.def.defName != choose)
-                        {
-                            ApparelGraphicRecordGetter.TryGetGraphicApparel(apparel, pawn.story.bodyType, out ApparelGraphicRecord a);
-                            apparelGraphicRecord = a;
-                        }
                     }
                     else
                     {
                         apparel = HATweakerUtility.NewApparel(choose);
                     }
                 }
-                if (pawn != null && InGame)
+                if (pawn != null && InGameSetting)
                 {
                     HATweakerUtility.DrawPawnCache(pawn, new Vector2(main2.width, main2.height), direction, out HATweakerCache.texture);
                     if (HATweakerCache.texture != null)
@@ -462,7 +459,7 @@ namespace HeadApparelTweaker
                 else
                 {
                     GUI.Label(main3, "Into_Game".Translate());
-                }*/
+                }
                 Rect main4 = new Rect(main2.x, main2.y + main2.height - LabelHeigh, main2.width, LabelHeigh);
                 if (Widgets.ButtonText(main4.LeftPart(0.32f), "←—"))
                 {
@@ -529,83 +526,77 @@ namespace HeadApparelTweaker
                     }
                 }
             }
-            /*else
+            else
             if (ChangeBar == 2)
             {
                 Rect one = rect0.TopPart(0.04f);
                 one.width /= 3f;
                 if (Widgets.ButtonText(one, "Quick_NoGraphic".Translate()))
                 {
-                    QuickSetting(list, 0, null, 0);
+                    QuickSetting(0, true);
                 }
                 one.x += one.width;
                 if (Widgets.ButtonText(one, "Quick_HideHair".Translate()))
                 {
-                    QuickSetting(list, 0, null, 1);
+                    QuickSetting(1, true);
                 }
                 one.x += one.width;
                 if (Widgets.ButtonText(one, "Quick_DisplayHair".Translate()))
                 {
-                    QuickSetting(list, 0, null, 2);
+                    QuickSetting(1, false);
                 }
                 one.x -= 2f * one.width;
                 one.width *= 3f;
                 one.y += one.height + 5f;
+                if (Widgets.ButtonText(one.LeftHalf(), "Quick_HideBeard".Translate()))
+                {
+                    QuickSetting(2, true);
+                }
+                if (Widgets.ButtonText(one.RightHalf(), "Quick_DisplayBeard".Translate()))
+                {
+                    QuickSetting(2, false);
+                }
+                one.y += one.height + 5f;
                 if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideInDoor".Translate()))
                 {
-                    QuickSetting(list, 1, true, null);
+                    QuickSetting(3, true);
                 }
+
                 if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideInDoor".Translate()))
                 {
-                    QuickSetting(list, 1, false, null);
+                    QuickSetting(3,false);
                 }
                 one.y += one.height + 5f;
                 if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideNoFight".Translate()))
                 {
-                    QuickSetting(list, 2, true, null);
+                    QuickSetting(4,true);
                 }
                 if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideNoFight".Translate()))
                 {
-                    QuickSetting(list, 2, false, null);
+                    QuickSetting(4, false);
                 }
                 one.y += one.height + 5f;
                 if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideInBed".Translate()))
                 {
-                    QuickSetting(list, 3, true, null);
+                    QuickSetting(5,true);
                 }
                 if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideInBed".Translate()))
                 {
-                    QuickSetting(list, 3, false, null);
+                    QuickSetting(5,false);
                 }
                 one.y += one.height + 5f;
                 if (Widgets.ButtonText(one, "Reset_All_Setting".Translate()))
                 {
-                    HATweakerSetting.HeadgearDisplayType.Clear();
-                    HATweakerSetting.HeadApparelDataInitialize();
-                    HATweakerCache.MakeModCache();
+                    HATweakerSetting.SettingData.Clear();
+                    HATweakerSetting.InitSetting();
                 }
                 one.y += one.height + 5f;
                 if (Mouse.IsOver(one))
                 {
                     Widgets.DrawHighlight(one);
-                    TooltipHandler.TipRegion(one, "Only_Colonist_Tooltip".Translate());
                 }
-                Widgets.CheckboxLabeled(one, "Only_Colonist".Translate(), ref HATweakerSetting.OnlyWorkOnColonist);
-                one.y += one.height + 5f;
-                if (Mouse.IsOver(one))
-                {
-                    Widgets.DrawHighlight(one);
-                    TooltipHandler.TipRegion(one, "Only_Colonist_1_Tooltip".Translate());
-                }
-                Widgets.CheckboxLabeled(one, "Only_Colonist_1".Translate(), ref HATweakerSetting.OnlyWorkOnColonist_1);
-                one.y += one.height + 5f;
-                if (Mouse.IsOver(one))
-                {
-                    Widgets.DrawHighlight(one);
-                    TooltipHandler.TipRegion(one, "Only_Colonist_2_Tooltip".Translate());
-                }
-                Widgets.CheckboxLabeled(one, "Only_Colonist_2".Translate(), ref HATweakerSetting.OnlyWorkOnColonist_2);
-                one.y += one.height + 5f;
+                Widgets.CheckboxLabeled(one, "Only_Colonist".Translate(), ref HATweakerSetting.WorkOnColonist);
+                /*one.y += one.height + 5f;
                 if (IndexOfVEF != -1)
                 {
                     if (Mouse.IsOver(one))
@@ -624,9 +615,9 @@ namespace HeadApparelTweaker
                         TooltipHandler.TipRegion(one, "Restart_to_apply_settings".Translate());
                     }
                     Widgets.CheckboxLabeled(one, "AlienRace_Patch".Translate(), ref HATweakerSetting.AlienRacePatch);
-                }
+                }*/
             }
-            else
+            /*else
             if (ChangeBar == 3)
             {
                 if (SettingOpen)
@@ -657,14 +648,54 @@ namespace HeadApparelTweaker
                         HATweakerUtility.UnderOrAboveHair(choose, false);
                     }
                 }
-            }
-            */
+            }*/
             if (BarChange)
             {
                 pawn = null;
+                apparel = null;
                 PawnName = null;
                 HATweakerCache.texture = null;
                 BarChange = false;
+
+            }
+            if (ChangeBar != 1)
+            {
+                InGameSetting = false;
+            }
+            void QuickSetting(int a, bool on)
+            {
+                for (int i = 0; i < list.Count; i++)
+                {
+                    ThingDef def = list[i];
+                    HATweakerSetting.HATSettingData data = HATweakerSetting.SettingData[def.defName];
+                    if (a == 0)
+                    {
+                        data.NoGraphic = on;
+                    }
+                    else
+                    {
+                        data.NoGraphic = false;
+                        if (a == 1)
+                        {
+                            data.NoHair = on;
+                        }
+                        else
+                        if (a == 2)
+                        {
+                            data.NoBeard = on;
+                        }
+                        else
+                        if (a == 3)
+                        {
+                            data.HideInDoor = on;
+                        }
+                        else
+                        if (a == 4)
+                        {
+
+                        }
+                    }
+                }
             }
         }
         public override string SettingsCategory()
@@ -674,6 +705,12 @@ namespace HeadApparelTweaker
 
         public override void WriteSettings()
         {
+            pawn = null;
+            apparel = null;
+            PawnName = null;
+            HATweakerCache.texture = null;
+            BarChange = false;
+            InGameSetting = false;
             ResolveAllApparelGraphics();
             base.WriteSettings();
         }
@@ -702,8 +739,11 @@ namespace HeadApparelTweaker
     public class HATweakerSetting : ModSettings
     {
         public static Dictionary<string, HATSettingData> SettingData = new Dictionary<string, HATSettingData>();
+        public static bool WorkOnColonist = true;
+
         public override void ExposeData()
         {
+            Scribe_Values.Look(ref WorkOnColonist, "WorkOnColonist",true);
             List<string> names = SettingData.Keys.ToList();
             if (Scribe.EnterNode("HATData"))
             {
@@ -814,7 +854,7 @@ namespace HeadApparelTweaker
             }
             SettingData[def.defName].DefaultNoHair = a;
             SettingData[def.defName].DefaultNoBeard = b;
-            SettingData[def.defName].DefaultNoEyes = c&&b;
+            SettingData[def.defName].DefaultNoEyes = c && b;
         }
         public class HATSettingData : IExposable
         {
@@ -997,6 +1037,10 @@ namespace HeadApparelTweaker
         {
             if (pawn != null)
             {
+                if (pawn.apparel != null)
+                {
+                    pawn.apparel.Notify_ApparelChanged();
+                }
                 RenderTexture rt = PortraitsCache.Get(pawn, size, direction);
                 texture = rt;
                 //Log.Warning(texture.depth.ToStringSafe());
@@ -1028,6 +1072,11 @@ namespace HeadApparelTweaker
         static Type renderTree = typeof(PawnRenderTree);
         internal static void PatchAllByHAT(Harmony harmony)
         {
+            MethodInfo SetupApparelNodes = AccessTools.Method(renderTree, "SetupApparelNodes");
+            if (SetupApparelNodes != null)
+            {
+                harmony.Patch(SetupApparelNodes, transpiler: new HarmonyMethod(This, nameof(HarmonyPatchA5.TranSetupApparelNodes)));
+            }
             MethodInfo draw = AccessTools.Method(renderTree, "ProcessApparel");
             if (draw != null)
             {
@@ -1059,10 +1108,73 @@ namespace HeadApparelTweaker
 
         }
 
-        private static bool PreProcessApparel(Apparel ap, PawnRenderNode headApparelNode, PawnRenderNode bodyApparelNode, PawnRenderTree __instance)
+        public static IEnumerable<CodeInstruction> TranSetupApparelNodes(IEnumerable<CodeInstruction> codes, ILGenerator generator)
+        {
+            Label a = generator.DefineLabel();
+            List<CodeInstruction> list = codes.ToList();
+            for (int i = 0; i < list.Count; i++)
+            {
+                CodeInstruction code = list[i];
+                if (i > 2 && code.opcode == OpCodes.Stloc_2 && list[i - 1].opcode == OpCodes.Ldloc_3)
+                {
+                    yield return code;
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(This, nameof(ShowChoose)));
+                    yield return new CodeInstruction(OpCodes.Brfalse, a);
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(This, nameof(GetApparel_0)));
+                    //yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(HATweakerMod), nameof(HATweakerMod.apparel)));
+                    yield return new CodeInstruction(OpCodes.Ldloc_0);
+                    yield return new CodeInstruction(OpCodes.Ldloc_2);
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(renderTree, "ProcessApparel"));
+                }
+                else if (i > 3 && code.opcode == OpCodes.Ldarg_0 && list[i - 1].opcode == OpCodes.Stloc_2 && list[i - 2].opcode == OpCodes.Ldloc_3)
+                {
+                    if (code.labels.NullOrEmpty())
+                    {
+                        code.labels = new List<Label>()
+                        {
+                           a
+                        };
+                    }
+                    else
+                    {
+                        code.labels.Add(a);
+                    }
+                    yield return code;
+                }
+                else
+                {
+                    yield return code;
+                }
+            }
+        }
+        private static Apparel GetApparel_0()
+        {
+            return HATweakerMod.apparel;
+        }
+        private static bool ShowChoose(PawnRenderTree tree)
+        {
+            bool a = false;
+            if (HATweakerMod.pawn != null && HATweakerMod.pawn == tree.pawn)
+            {
+                bool b = HATweakerMod.InGameSetting;
+                a = HATweakerMod.apparel != null && b;
+                if (b)
+                {
+                    HATweakerMod.InGameSetting = false;
+                }
+            }
+            return a;
+        }
+        public static bool PreProcessApparel(Apparel ap, PawnRenderNode headApparelNode, PawnRenderNode bodyApparelNode, PawnRenderTree __instance)
         {
             Pawn pawn = __instance.pawn;
-            if (pawn.IsColonist && HATweakerSetting.SettingData.TryGetValue(ap.def.defName, out HATweakerSetting.HATSettingData data))
+            if (HATweakerMod.pawn != null && HATweakerMod.pawn == pawn && !HATweakerCache.HeadApparel.NullOrEmpty() && HATweakerCache.HeadApparel.Contains(ap.def) && ap != HATweakerMod.apparel)
+            {
+                return false;
+            }
+            if ((!HATweakerSetting.WorkOnColonist||pawn.IsColonist)&&HATweakerSetting.WorkOnColonist && HATweakerSetting.SettingData.TryGetValue(ap.def.defName, out HATweakerSetting.HATSettingData data))
             {
                 if (data.NoGraphic)
                 {
@@ -1089,12 +1201,12 @@ namespace HeadApparelTweaker
             }
             return true;
         }
-
         public static IEnumerable<CodeInstruction> TranAdjustParms(IEnumerable<CodeInstruction> codes)
         {
             FieldInfo info0 = typeof(Apparel).GetField("def");
             FieldInfo info1 = typeof(ThingDef).GetField("apparel");
             FieldInfo info2 = typeof(ApparelProperties).GetField("renderSkipFlags");
+            MethodInfo method = AccessTools.PropertyGetter(typeof(Pawn_ApparelTracker), nameof(Pawn_ApparelTracker.WornApparel));
             List<CodeInstruction> list = codes.ToList();
             for (int i = 0; i < list.Count; i++)
             {
@@ -1108,16 +1220,45 @@ namespace HeadApparelTweaker
                     yield return new CodeInstruction(OpCodes.Ldfld, typeof(PawnRenderTree).GetField("pawn"));
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(This, nameof(SetDispalyFlags)));
                 }
+                else if (code.Is(OpCodes.Callvirt, method))
+                {
+                    yield return code;
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldfld, typeof(PawnRenderTree).GetField("pawn"));
+                    yield return new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(This, nameof(GetApparel_1)));
+                }
                 else
                 {
                     yield return code;
                 }
             }
         }
+        private static List<Apparel> GetApparel_1(List<Apparel> origin, Pawn pawn)
+        {
+            if (pawn != null && HATweakerMod.pawn != null && HATweakerMod.apparel != null)
+            {
+                if (pawn == HATweakerMod.pawn)
+                {
+                    List<Apparel> a;
+                    if (!origin.NullOrEmpty())
+                    {
+                        a = new List<Apparel>(origin);
+                    }
+                    else
+                    {
+                        a = new List<Apparel>();
+                    }
+                    a.RemoveAll(x => HATweakerCache.HeadApparel.Contains(x.def));
+                    a.Add(HATweakerMod.apparel);
+                    return a;
+                }
+            }
+            return origin;
+        }
 
         public static List<RenderSkipFlagDef> SetDispalyFlags(List<RenderSkipFlagDef> origin, ThingDef def, Pawn pawn)
         {
-            if (pawn.IsColonist &&
+            if ((!HATweakerSetting.WorkOnColonist || pawn.IsColonist) &&
                HATweakerSetting.SettingData.TryGetValue(def.defName, out HATweakerSetting.HATSettingData data))
             {
                 if (data.DefaultNoHair == data.NoHair && data.DefaultNoBeard == data.NoBeard)
@@ -1235,7 +1376,7 @@ namespace HeadApparelTweaker
 
         public static PawnRenderNodeProperties SetHeadClothesProps(PawnRenderNodeProperties properties, Thing cloth, Pawn pawn)
         {
-            if (pawn.IsColonist && HATweakerSetting.SettingData.TryGetValue(cloth.def.defName, out HATweakerSetting.HATSettingData data))
+            if ((!HATweakerSetting.WorkOnColonist || pawn.IsColonist) && HATweakerSetting.SettingData.TryGetValue(cloth.def.defName, out HATweakerSetting.HATSettingData data))
             {
                 if (data.AdvanceMode)
                 {
@@ -1273,7 +1414,7 @@ namespace HeadApparelTweaker
         }
         public static void UpdateApparelData(Pawn pawn)
         {
-            if (!pawn.IsColonist)
+            if (HATweakerSetting.WorkOnColonist && pawn.IsColonist)
             {
                 return;
             }
@@ -1323,7 +1464,7 @@ namespace HeadApparelTweaker
             if (thing is Pawn)
             {
                 Pawn pawn = thing as Pawn;
-                if (!pawn.IsColonist)
+                if (HATweakerSetting.WorkOnColonist && pawn.IsColonist)
                 {
                     return;
                 }
