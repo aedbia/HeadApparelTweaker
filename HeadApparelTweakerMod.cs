@@ -1330,7 +1330,7 @@ namespace HeadApparelTweaker
         }
         public static void SetRotateAndLoc(PawnRenderNode node, PawnDrawParms parms, ref Vector3 vec, ref Quaternion quat)
         {
-            if (parms.pawn.IsColonist &&
+            if ((!HATweakerSetting.WorkOnColonist || parms.pawn.IsColonist) &&
                 (node.Props.workerClass == typeof(PawnRenderNodeWorker_Apparel_Head) && node.children.NullOrEmpty()
             && HATweakerSetting.SettingData.TryGetValue(node.apparel != null ? node.apparel.def.defName : node.Props.debugLabel, out HATweakerSetting.HATSettingData data)))
             {
@@ -1414,13 +1414,14 @@ namespace HeadApparelTweaker
         }
         public static void UpdateApparelData(Pawn pawn)
         {
-            if (HATweakerSetting.WorkOnColonist && pawn.IsColonist)
+            if (HATweakerSetting.WorkOnColonist && !pawn.IsColonist)
             {
                 return;
             }
             if (pawn.apparel != null && pawn.apparel.AnyApparel)
             {
                 pawn.apparel.Notify_ApparelChanged();
+                
             }
         }
 
@@ -1464,7 +1465,7 @@ namespace HeadApparelTweaker
             if (thing is Pawn)
             {
                 Pawn pawn = thing as Pawn;
-                if (HATweakerSetting.WorkOnColonist && pawn.IsColonist)
+                if (HATweakerSetting.WorkOnColonist && !pawn.IsColonist)
                 {
                     return;
                 }
