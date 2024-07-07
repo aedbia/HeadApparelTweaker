@@ -36,7 +36,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="AlienRace">
-      <HintPath>E:\SteamLibrary\steamapps\workshop\content\294100\839005762\1.4\Assemblies\AlienRace.dll</HintPath>
+      <HintPath>E:\SteamLibrary\steamapps\workshop\content\294100\839005762\1.5\Assemblies\AlienRace.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
@@ -46,6 +46,10 @@
     </Reference>
     <Reference Include="CombatExtended">
       <HintPath>E:\SteamLibrary\steamapps\workshop\content\294100\2890901044\Assemblies\CombatExtended.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Fashion Wardrobe">
+      <HintPath>E:\SteamLibrary\steamapps\common\RimWorld\Mods\Fashion Wardrobe\1.5\Assemblies\Fashion Wardrobe.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
