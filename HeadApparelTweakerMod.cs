@@ -32,6 +32,10 @@ namespace HeadApparelTweaker
         private Vector2 position0 = Vector2.zero;
         private float height0;
         internal static bool InGameSetting = false;
+        private static HATweakerSetting.HATSettingData copyData = new HATweakerSetting.HATSettingData();
+        private static bool copy;
+
+        //private static readonly Texture2D NULL = ContentFinder<Texture2D>.Get("UI/Overlays/QuestionMark", true);
 
         private int ChangeBar
         {
@@ -64,6 +68,10 @@ namespace HeadApparelTweaker
         public override void DoSettingsWindowContents(Rect inRect)
         {
             List<ThingDef> list = HATweakerCache.HeadApparel;
+            if (list.NullOrEmpty())
+            {
+                return;
+            }
             if (choose.NullOrEmpty())
             {
                 choose = list.First().defName;
@@ -86,643 +94,20 @@ namespace HeadApparelTweaker
             guiA.padding.bottom = -10;
             ChangeBar = GUI.SelectionGrid(inRect.TopPart(0.04f).RightPart(0.69f), ChangeBar, guiB, obCount, guiA);
             //Initialized ScrollView Data;
-            float LabelHeigh = 30f;
-            Rect rect0 = inRect.BottomPart(0.95f);
-            if (ChangeBar == 0)
+            switch (ChangeBar)
             {
-                int ShowCount = 5;
-                List<ThingDef> list1 = list.Where(a1 => a1.label.IndexOf(search) != -1).ToList();
-                if (Widgets.ButtonText(rect0.TopPart(0.052f), "↑"))
-                {
-                    if (HatStartIndex - ShowCount >= 0)
-                    {
-                        HatStartIndex -= ShowCount;
-                    }
-                }
-
-                if (Widgets.ButtonText(rect0.BottomPart(0.052f), "↓"))
-                {
-                    if (list != null && HatStartIndex + ShowCount < list.Count)
-                    {
-                        HatStartIndex += ShowCount;
-                    }
-                }
-                Rect r2 = new Rect(inRect.x, (inRect.y + inRect.height * 0.05f) + inRect.height * 0.95f * 0.052f, inRect.width, inRect.height * 0.95f * 0.896f);
-                Widgets.DrawWindowBackground(r2);
-                if (!list.NullOrEmpty())
-                {
-                    if (HatStartIndex >= list.Count)
-                    {
-                        HatStartIndex = 0;
-                    }
-                    Rect rt3 = new Rect(r2.x, r2.y, r2.width, r2.height / 5);
-                    for (int i = HatStartIndex; i < HatStartIndex + 5 && i < list1.Count; i++)
-                    {
-                        ThingDef def = list1[i];
-                        GUI.color = new ColorInt(97, 108, 122).ToColor;
-                        GUI.DrawTexture(new Rect(rt3.x, rt3.y + rt3.height, rt3.width, 4f), BaseContent.WhiteTex);
-                        Widgets.DrawLineHorizontal(rt3.x + 0.85f * rt3.height, rt3.y + rt3.height / 2, rt3.width - 0.85f * rt3.height);
-                        Widgets.DrawLineVertical(rt3.x + 0.85f * rt3.height, rt3.y, rt3.height);
-                        Widgets.DrawLineVertical(rt3.x + 0.85f * rt3.height + (rt3.width - 0.85f * rt3.height) / 5, rt3.y, rt3.height);
-                        Widgets.DrawLineVertical(rt3.x + 0.85f * rt3.height + 2 * (rt3.width - 0.85f * rt3.height) / 5, rt3.y, rt3.height);
-                        Widgets.DrawLineVertical(rt3.x + 0.85f * rt3.height + 3 * (rt3.width - 0.85f * rt3.height) / 5, rt3.y, rt3.height);
-                        Widgets.DrawLineVertical(rt3.x + 0.85f * rt3.height + 4 * (rt3.width - 0.85f * rt3.height) / 5, rt3.y, rt3.height);
-
-                        GUI.color = Color.white;
-                        Rect rect = new Rect(rt3.x + 0.1f * rt3.height, rt3.y + 0.1f * rt3.height, rt3.height * 0.6f, rt3.height * 0.6f);
-                        Widgets.DrawBox(rect);
-                        GUI.DrawTexture(rect, def.uiIcon);
-                        Rect rect1 = new Rect(rt3.x + 0.05f * rt3.height, rt3.y + rt3.height * 0.65f, rt3.height * 0.75f, rt3.height * 0.35f);
-                        GUI.Label(rect1, def.label, new GUIStyle(Verse.Text.CurFontStyle)
-                        {
-                            alignment = TextAnchor.MiddleCenter
-                        });
-                        HATweakerSetting.SingleInit(def);
-                        HATweakerSetting.HATSettingData data = HATweakerSetting.SettingData[def.defName];
-                        Rect rect2 = new Rect(rt3.x + 0.9f * rt3.height, rt3.y, (rt3.width - 0.85f * rt3.height) / 5 - 0.1f * rt3.height, rt3.height);
-                        if (Widgets.RadioButtonLabeled(rect2.TopHalf(), "No_Graphic".Translate(), data.NoGraphic))
-                        {
-                            data.NoGraphic = !data.NoGraphic;
-                        }
-                        if (!data.NoGraphic)
-                        {
-                            if (Mouse.IsOver(rect2.BottomHalf()))
-                            {
-                                Widgets.DrawHighlight(rect2.BottomHalf());
-                            }
-                            if (Widgets.RadioButtonLabeled(rect2.BottomHalf(), "No_Beard".Translate(), data.NoBeard))
-                            {
-                                data.NoBeard = !data.NoBeard;
-                            }
-                            rect2.x += (rt3.width - 0.85f * rt3.height) / 5;
-                            if (Mouse.IsOver(rect2.TopHalf()))
-                            {
-                                Widgets.DrawHighlight(rect2.TopHalf());
-                            }
-                            if (Widgets.RadioButtonLabeled(rect2.TopHalf(), "No_Hair".Translate(), data.NoHair))
-                            {
-                                data.NoHair = !data.NoHair;
-                            }
-                            if (Mouse.IsOver(rect2.BottomHalf()))
-                            {
-                                Widgets.DrawHighlight(rect2.BottomHalf());
-                            }
-                            if (Widgets.RadioButtonLabeled(rect2.BottomHalf(), "Hide_Indoor".Translate(), data.HideInDoor))
-                            {
-                                data.HideInDoor = !data.HideInDoor;
-                            }
-                            rect2.x += (rt3.width - 0.85f * rt3.height) / 5;
-                            if (Mouse.IsOver(rect2.TopHalf()))
-                            {
-                                Widgets.DrawHighlight(rect2.TopHalf());
-                            }
-                            if (Widgets.RadioButtonLabeled(rect2.TopHalf(), "Hide_No_Fight".Translate(), data.HideNoFight))
-                            {
-                                data.HideNoFight = !data.HideNoFight;
-                            }
-                            if (Mouse.IsOver(rect2.BottomHalf()))
-                            {
-                                Widgets.DrawHighlight(rect2.BottomHalf());
-                            }
-                            if (Widgets.RadioButtonLabeled(rect2.BottomHalf(), "Hide_In_Bed".Translate(), data.HideInBed))
-                            {
-                                data.HideInBed = !data.HideInBed;
-                            }
-
-                        }
-                        rt3.y += rt3.height;
-                    }
-                }
-            }
-            else
-            if (ChangeBar == 1)
-            {
-                InGameSetting = Find.CurrentMap != null && Find.CurrentMap.mapPawns != null && Find.CurrentMap.mapPawns.ColonistsSpawnedCount > 0;
-                Rect outRect = rect0.LeftPart(0.3f);
-                Widgets.DrawWindowBackground(outRect);
-                Rect viewRect = new Rect(-3f, -3f, outRect.width - 26f, (LabelHeigh + 5f) * IndexCount + 3f);
-                Rect rect1 = new Rect(LabelHeigh + 5f, 0f, outRect.width - 60f, LabelHeigh);
-                Rect rect2 = new Rect(0f, 0f, LabelHeigh, LabelHeigh);
-                Widgets.BeginScrollView(outRect, ref this.loc, viewRect, true);
-                int se = 0;
-                //Draw ScrollView;
-                foreach (ThingDef c in list)
-                {
-                    if (c.label.IndexOf(search) != -1)
-                    {
-                        se++;
-                        if (Mouse.IsOver(rect1))
-                        {
-                            Widgets.DrawHighlight(rect1);
-                        }
-                        if (Widgets.RadioButtonLabeled(rect1, c.label, choose == c.defName))
-                        {
-                            choose = c.defName;
-                        }
-                        Widgets.DrawBox(rect2);
-                        GUI.DrawTexture(rect2, c.uiIcon);
-                        rect1.y += (LabelHeigh + 5f);
-                        rect2.y += (LabelHeigh + 5f);
-                    }
-                }
-                IndexCount = se;
-                Widgets.EndScrollView();
-                //MainSetting
-                ThingDef def = list.FirstOrDefault(x => x.defName == choose);
-                HATweakerSetting.SingleInit(def);
-                Rect main = rect0.RightPart(0.69f);
-                Widgets.DrawWindowBackground(main);
-                HATweakerSetting.HATSettingData data = HATweakerSetting.SettingData[choose];
-                Widgets.BeginScrollView(main.LeftHalf(), ref position0, new Rect(0, 0, main.width / 2 - 18f, height0));
-                Rect main1 = new Rect(5f, 5f, main.width / 2 - 28f, LabelHeigh);
-                LabelHeigh -= 3f;
-                if (Mouse.IsOver(main1))
-                {
-                    Widgets.DrawHighlight(main1);
-                }
-                if (Widgets.RadioButtonLabeled(main1, "No_Graphic".Translate(), data.NoGraphic))
-                {
-                    data.NoGraphic = !data.NoGraphic;
-                }
-                if (!data.NoGraphic)
-                {
-                    main1.y += LabelHeigh;
-                    if (Mouse.IsOver(main1))
-                    {
-                        Widgets.DrawHighlight(main1);
-                    }
-                    if (Widgets.RadioButtonLabeled(main1, "No_Hair".Translate(), data.NoHair))
-                    {
-                        data.NoHair = !data.NoHair;
-                    }
-                    main1.y += LabelHeigh;
-                    if (Mouse.IsOver(main1))
-                    {
-                        Widgets.DrawHighlight(main1);
-                    }
-                    if (Widgets.RadioButtonLabeled(main1, "No_Beard".Translate(), data.NoBeard))
-                    {
-                        data.NoBeard = !data.NoBeard;
-                    }
-                    main1.y += LabelHeigh;
-                    if (Mouse.IsOver(main1))
-                    {
-                        Widgets.DrawHighlight(main1);
-                    }
-                    if (Widgets.RadioButtonLabeled(main1, "Hide_Indoor".Translate(), data.HideInDoor))
-                    {
-                        data.HideInDoor = !data.HideInDoor;
-                    }
-                    main1.y += LabelHeigh;
-                    if (Mouse.IsOver(main1))
-                    {
-                        Widgets.DrawHighlight(main1);
-                    }
-                    if (Widgets.RadioButtonLabeled(main1, "Hide_No_Fight".Translate(), data.HideNoFight))
-                    {
-                        data.HideNoFight = !data.HideNoFight;
-                    }
-                    main1.y += LabelHeigh;
-                    if (Mouse.IsOver(main1))
-                    {
-                        Widgets.DrawHighlight(main1);
-                    }
-                    if (Widgets.RadioButtonLabeled(main1, "Hide_In_Bed".Translate(), data.HideInBed))
-                    {
-                        data.HideInBed = !data.HideInBed;
-                    }
-
-                    main1.y += (LabelHeigh + 10f);
-                    Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
-                    LabelHeigh += 3f;
-                    Widgets.CheckboxLabeled(main1, "Advance_Mode".Translate(), ref data.AdvanceMode);
-                    if (data.AdvanceMode)
-                    {
-
-                        main1.y += LabelHeigh;
-                        Widgets.Label(main1.LeftPart(0.7f), "Size".Translate() + ":" + data.size.ToString("F2"));
-                        if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                        {
-                            data.size = Vector2.one;
-                        }
-                        main1.y += (LabelHeigh - 6f);
-                        data.size.x =
-                        Widgets.HorizontalSlider(main1.LeftHalf(), data.size.x, 0.5f, 2f);
-                        data.size.y =
-                        Widgets.HorizontalSlider(main1.RightHalf(), data.size.y, 0.5f, 2f);
-                        main1.y += (LabelHeigh - 6f);
-                        Widgets.Label(main1.LeftPart(0.7f), "South".Translate() + ":" + data.SouthOffset.ToString("F2"));
-                        if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                        {
-                            data.SouthOffset = Vector2.zero;
-                        }
-                        main1.y += (LabelHeigh - 6f);
-                        data.SouthOffset.x =
-                        Widgets.HorizontalSlider(main1.LeftHalf(), data.SouthOffset.x, -1, 1);
-                        data.SouthOffset.y =
-                        Widgets.HorizontalSlider(main1.RightHalf(), data.SouthOffset.y, -1, 1);
-                        main1.y += (LabelHeigh - 6f);
-                        Widgets.Label(main1.LeftPart(0.7f), "North".Translate() + ":" + data.NorthOffset.ToString("F2"));
-                        if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                        {
-                            data.NorthOffset = Vector2.zero;
-                        }
-                        main1.y += (LabelHeigh - 6f);
-                        data.NorthOffset.x =
-                        Widgets.HorizontalSlider(main1.LeftHalf(), data.NorthOffset.x, -1, 1);
-                        data.NorthOffset.y =
-                        Widgets.HorizontalSlider(main1.RightHalf(), data.NorthOffset.y, -1, 1);
-                        main1.y += (LabelHeigh - 6f);
-                        Widgets.Label(main1.LeftPart(0.7f), "West".Translate() + ":" + data.WestOffset.ToString("f2"));
-                        if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                        {
-                            data.WestOffset = Vector2.zero;
-                        }
-                        main1.y += (LabelHeigh - 6f);
-                        data.WestOffset.x =
-                        Widgets.HorizontalSlider(main1.LeftHalf(), data.WestOffset.x, -1, 1);
-                        data.WestOffset.y =
-                        Widgets.HorizontalSlider(main1.RightHalf(), data.WestOffset.y, -1, 1);
-                        main1.y += (LabelHeigh - 6f);
-                        Widgets.Label(main1.LeftPart(0.7f), "East".Translate() + ":" + data.EastOffset.ToString("f2"));
-                        if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                        {
-                            data.EastOffset = Vector2.zero;
-                        }
-                        main1.y += (LabelHeigh - 6f);
-                        data.EastOffset.x =
-                        Widgets.HorizontalSlider(main1.LeftHalf(), data.EastOffset.x, -1, 1);
-                        data.EastOffset.y =
-                        Widgets.HorizontalSlider(main1.RightHalf(), data.EastOffset.y, -1, 1);
-                        main1.y += (LabelHeigh - 6f);
-                        Widgets.Label(main1.LeftPart(0.7f), "Rotate".Translate() + ":" + "South".Translate() + "[" + data.SouthRotation.ToString("0") + "]" + "North".Translate() + "[" + data.NorthRotation.ToString("0") + "]");
-                        if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                        {
-                            data.SouthRotation = 0f;
-                            data.NorthRotation = 0f;
-                        }
-                        main1.y += (LabelHeigh - 6f);
-                        data.SouthRotation =
-                        Widgets.HorizontalSlider(main1.LeftHalf(), data.SouthRotation, -180, 180);
-                        data.NorthRotation =
-                        Widgets.HorizontalSlider(main1.RightHalf(), data.NorthRotation, -180, 180);
-                        main1.y += (LabelHeigh - 6f);
-                        Widgets.Label(main1.LeftPart(0.7f), "Rotate".Translate() + ":" + "East".Translate() + "[" + data.EastRotation.ToString("0") + "]" + "West".Translate() + "[" + data.WestRotation.ToString("0") + "]");
-                        if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                        {
-                            data.EastRotation = 0f;
-                            data.WestRotation = 0f;
-                        }
-                        main1.y += (LabelHeigh - 6f);
-                        data.EastRotation =
-                        Widgets.HorizontalSlider(main1.LeftHalf(), data.EastRotation, -180, 180);
-                        data.WestRotation =
-                        Widgets.HorizontalSlider(main1.RightHalf(), data.WestRotation, -180, 180);
-                        main1.y += (LabelHeigh - 6f);
-                        Widgets.Label(main1.LeftPart(0.7f), "Layer_Offset".Translate() + ":" + data.LayerOffset.ToString("f5"));
-                        if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                        {
-                            data.LayerOffset = 0f;
-                        }
-                        main1.y += (LabelHeigh - 6f);
-                        data.LayerOffset =
-                        Widgets.HorizontalSlider(main1, data.LayerOffset, -0.003f, +0.003f);
-                    }
-                }
-                Widgets.EndScrollView();
-                LabelHeigh = 30f;
-                height0 = main1.y + LabelHeigh;
-                Rect main2 = main.RightHalf();
-                Rect main3 = new Rect(main2.x, main2.y, main2.width, main2.height - LabelHeigh - 5f);
-                Widgets.DrawWindowBackground(main3);
-                if (InGameSetting)
-                {
-                    List<Pawn> Colonists = Current.Game.CurrentMap.mapPawns.FreeColonists;
-                    if (!Colonists.NullOrEmpty())
-                    {
-                        if (PawnName == null)
-                        {
-                            PawnName = Colonists.FirstOrDefault().Name.ToStringFull;
-                        }
-                        if (pawn == null)
-                        {
-                            pawn = Colonists.FirstOrDefault();
-                        }
-                        if (PawnName != null && Widgets.ButtonText(main3.TopPart(0.05f), PawnName))
-                        {
-                            List<FloatMenuOption> Options = new List<FloatMenuOption>();
-                            for (int i = 0; i < Colonists.Count; i++)
-                            {
-                                Pawn pa = Colonists[i];
-                                string now = "";
-                                if (pa.Name.ToStringFull == PawnName)
-                                {
-                                    now = "(Now)".Translate();
-                                }
-                                Options.Add(new FloatMenuOption(pa.Name.ToStringShort + now, () => PawnName = pa.Name.ToStringFull));
-                            }
-                            Find.WindowStack.Add(new FloatMenu(Options));
-                        }
-                        if (pawn != null && pawn.Name.ToStringFull != PawnName)
-                        {
-                            if (pawn.apparel != null)
-                            {
-                                pawn.apparel.Notify_ApparelChanged();
-                            }
-                            pawn = Colonists.FirstOrDefault(x => x.Name.ToStringFull == PawnName);
-                            if (pawn == null)
-                            {
-                                PawnName = null;
-                            }
-                            else
-                            {
-                                PawnName = pawn.Name.ToStringFull;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        PawnName = null;
-                        pawn = null;
-                        HATweakerCache.texture = null;
-                    }
-                }
-                if (!choose.NullOrEmpty() && pawn != null && InGameSetting)
-                {
-                    if (apparel != null)
-                    {
-                        if (apparel.def.defName != choose)
-                        {
-                            apparel = HATweakerUtility.NewApparel(choose);
-                        }
-                    }
-                    else
-                    {
-                        apparel = HATweakerUtility.NewApparel(choose);
-                    }
-                }
-                if (pawn != null && InGameSetting)
-                {
-                    HATweakerUtility.DrawPawnCache(pawn, new Vector2(main2.width, main2.height), direction, out HATweakerCache.texture);
-                    if (HATweakerCache.texture != null)
-                    {
-                        GUI.DrawTexture(main3.BottomPart(0.95f), HATweakerCache.texture);
-                    }
-                }
-                else
-                {
-                    GUI.Label(main3, "Into_Game".Translate());
-                }
-                Rect main4 = new Rect(main2.x, main2.y + main2.height - LabelHeigh, main2.width, LabelHeigh);
-                if (Widgets.ButtonText(main4.LeftPart(0.32f), "←—"))
-                {
-                    if (direction == Rot4.South)
-                    {
-                        direction = Rot4.West;
-                    }
-                    else if (direction == Rot4.West)
-                    {
-                        direction = Rot4.North;
-                    }
-                    else if (direction == Rot4.North)
-                    {
-                        direction = Rot4.East;
-                    }
-                    else
-                    {
-                        direction = Rot4.South;
-                    }
-                }
-
-                Rect two = main4.RightPart(0.66f).LeftHalf();
-                if (Mouse.IsOver(two))
-                {
-                    TooltipHandler.TipRegion(two, "Reset_Change_Tooltip".Translate());
-                }
-                if (Widgets.ButtonText(two, "Reset_Change".Translate()))
-                {
-                    if (data.AdvanceMode)
-                    {
-                        data.size = Vector2.one;
-                        data.SouthOffset = Vector2.zero;
-                        data.NorthOffset = Vector2.zero;
-                        data.EastOffset = Vector2.zero;
-                        data.WestOffset = Vector2.zero;
-                        data.SouthRotation = 0f;
-                        data.NorthRotation = 0f;
-                        data.EastRotation = 0f;
-                        data.WestRotation = 0f;
-                    }
-                    if (!HATweakerSetting.SettingData.NullOrEmpty() && HATweakerSetting.SettingData.ContainsKey(def.defName))
-                    {
-                        HATweakerSetting.SettingData.Remove(def.defName);
-                    }
-
-                }
-                if (Widgets.ButtonText(main4.RightPart(0.32f), "—→"))
-                {
-                    if (direction == Rot4.South)
-                    {
-                        direction = Rot4.East;
-                    }
-                    else if (direction == Rot4.East)
-                    {
-                        direction = Rot4.North;
-                    }
-                    else if (direction == Rot4.North)
-                    {
-                        direction = Rot4.West;
-                    }
-                    else
-                    {
-                        direction = Rot4.South;
-                    }
-                }
-            }
-            else
-            if (ChangeBar == 2)
-            {
-                Rect one = rect0.TopPart(0.04f);
-                one.width /= 3f;
-                if (Widgets.ButtonText(one, "Quick_NoGraphic".Translate()))
-                {
-                    QuickSetting(0, true);
-                }
-                one.x += one.width;
-                if (Widgets.ButtonText(one, "Quick_HideHair".Translate()))
-                {
-                    QuickSetting(1, true);
-                }
-                one.x += one.width;
-                if (Widgets.ButtonText(one, "Quick_DisplayHair".Translate()))
-                {
-                    QuickSetting(1, false);
-                }
-                one.x -= 2f * one.width;
-                one.width *= 3f;
-                one.y += one.height + 5f;
-                if (Widgets.ButtonText(one.LeftHalf(), "Quick_HideBeard".Translate()))
-                {
-                    QuickSetting(2, true);
-                }
-                if (Widgets.ButtonText(one.RightHalf(), "Quick_DisplayBeard".Translate()))
-                {
-                    QuickSetting(2, false);
-                }
-                one.y += one.height + 5f;
-                if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideInDoor".Translate()))
-                {
-                    QuickSetting(3, true);
-                }
-
-                if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideInDoor".Translate()))
-                {
-                    QuickSetting(3, false);
-                }
-                one.y += one.height + 5f;
-                if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideNoFight".Translate()))
-                {
-                    QuickSetting(4, true);
-                }
-                if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideNoFight".Translate()))
-                {
-                    QuickSetting(4, false);
-                }
-                one.y += one.height + 5f;
-                if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideInBed".Translate()))
-                {
-                    QuickSetting(5, true);
-                }
-                if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideInBed".Translate()))
-                {
-                    QuickSetting(5, false);
-                }
-                one.y += one.height + 5f;
-                if (Widgets.ButtonText(one, "Reset_All_Setting".Translate()))
-                {
-                    HATweakerSetting.SettingData.Clear();
-                    HATweakerSetting.InitSetting();
-                }
-                one.y += one.height + 5f;
-                if (Mouse.IsOver(one))
-                {
-                    Widgets.DrawHighlight(one);
-                }
-                Widgets.CheckboxLabeled(one, "Only_Colonist".Translate(), ref HATweakerSetting.WorkOnColonist);
-                /*one.y += one.height + 5f;
-                if (IndexOfVEF != -1)
-                {
-                    if (Mouse.IsOver(one))
-                    {
-                        Widgets.DrawHighlight(one);
-                        TooltipHandler.TipRegion(one, "Restart_to_apply_settings".Translate());
-                    }
-                    Widgets.CheckboxLabeled(one, "Close_VEF_Draw_HeadApparel".Translate(), ref HATweakerSetting.CloseVEFDraw);
-                    one.y += one.height + 5f;
-                }
-                if (IndexOfAR != -1)
-                {
-                    if (Mouse.IsOver(one))
-                    {
-                        Widgets.DrawHighlight(one);
-                        TooltipHandler.TipRegion(one, "Restart_to_apply_settings".Translate());
-                    }
-                    Widgets.CheckboxLabeled(one, "AlienRace_Patch".Translate(), ref HATweakerSetting.AlienRacePatch);
-                }*/
-            }
-            else
-            if (ChangeBar == 3)
-            {
-
-                Dictionary<int, string> dict = HATweakerCache.alienCompatible.AllAddons;
-                Widgets.DrawWindowBackground(rect0);
-                float wi = (rect0.width - 36f) / 4;
-                Rect rect00 = new Rect(rect0.x + 5f, rect0.y + 5f, wi - 5f, LabelHeigh);
-                Widgets.DrawLineHorizontal(rect0.x, rect00.y + LabelHeigh, rect0.width, Color.grey);
-                Widgets.Label(rect00, "Race".Translate());
-                Widgets.DrawLineVertical(rect00.x + rect00.width, rect0.y, LabelHeigh + 5);
-                rect00.x += wi;
-                Widgets.Label(rect00, "Name".Translate());
-                Widgets.DrawLineVertical(rect00.x + rect00.width, rect0.y, LabelHeigh + 5);
-                rect00.x += wi;
-                Widgets.Label(rect00, "Path".Translate());
-                Widgets.DrawLineVertical(rect00.x + rect00.width, rect0.y, LabelHeigh + 5);
-                rect00.x += wi;
-                rect00.width = wi / 2 - 5f;
-                Widgets.Label(rect00, "With_Hair".Translate());
-                Widgets.DrawLineVertical(rect00.x + rect00.width, rect0.y, LabelHeigh + 5);
-                rect00.x += wi / 2;
-                Widgets.Label(rect00, "With_Beard".Translate());
-                Widgets.DrawLineVertical(rect00.x + rect00.width, rect0.y, LabelHeigh + 5);
-                Rect outRect = new Rect(rect0.x + 5f, rect0.y + LabelHeigh + 10f, rect0.width - 10f, rect0.height - LabelHeigh - 20f);
-                Rect viewRect = new Rect(0, 0, outRect.width - 26f, (LabelHeigh + 5f) * IndexCount + 3f);
-                Rect rect1 = new Rect(0f, 0f, viewRect.width / 4, LabelHeigh);
-                Widgets.BeginScrollView(outRect, ref this.loc, viewRect, true);
-                int se = 0;
-                //Draw ScrollView;
-
-                if (dict.Count != 0)
-                {
-                    foreach (int dictKey in dict.Keys)
-                    {
-                        string disc = dict[dictKey];
-                        if (disc.IndexOf(search) != -1)
-                        {
-                            se++;
-                            /*if (Mouse.IsOver(rect1))
-                            {
-                                Widgets.DrawHighlight(rect1);
-                            }
-                            if (Widgets.RadioButtonLabeled(rect1, c.label, choose == c.defName))
-                            {
-                                choose = c.defName;
-                            }*/
-                            string[] strings = disc.Split('|');
-                            for (int i = 0; i < 3; i++)
-                            {
-                                if (strings.Length > i)
-                                {
-                                    Widgets.Label(rect1, strings[i]);
-                                    rect1.x += rect1.width;
-                                }
-                            }
-                            if (Widgets.RadioButton(rect1.x + rect1.width / 4 - 17f, rect1.y, (!HATweakerSetting.WithHair.NullOrEmpty()) && HATweakerSetting.WithHair.Contains(disc)))
-                            {
-                                if ((!HATweakerSetting.WithHair.NullOrEmpty()) && HATweakerSetting.WithHair.Contains(disc))
-                                {
-                                    HATweakerSetting.WithHair.Remove(disc);
-                                }
-                                else
-                                {
-                                    if (HATweakerSetting.WithHair == null)
-                                    {
-                                        HATweakerSetting.WithHair = new List<string>();
-                                    }
-                                    HATweakerSetting.WithHair.Add(disc);
-                                }
-                            }
-                            if (Widgets.RadioButton(rect1.x + rect1.width * 3 / 4 - 17f, rect1.y, (!HATweakerSetting.WithBeard.NullOrEmpty()) && HATweakerSetting.WithBeard.Contains(disc)))
-                            {
-                                if ((!HATweakerSetting.WithBeard.NullOrEmpty()) && HATweakerSetting.WithBeard.Contains(disc))
-                                {
-                                    HATweakerSetting.WithBeard.Remove(disc);
-                                }
-                                else
-                                {
-                                    if (HATweakerSetting.WithBeard == null)
-                                    {
-                                        HATweakerSetting.WithBeard = new List<string>();
-                                    }
-                                    HATweakerSetting.WithBeard.Add(disc);
-                                }
-                            }
-                            rect1.x = 0f;
-                            rect1.y += (LabelHeigh + 5f);
-                        }
-                    }
-                }
-                IndexCount = se;
-                Widgets.EndScrollView();
+                case 0:
+                    DrawBasicSettings(list, inRect);
+                    break;
+                case 1:
+                    DrawAdvanceSettings(list, inRect);
+                    break;
+                case 2:
+                    DrawGlobalSettings(list, inRect);
+                    break;
+                case 3:
+                    DrawPatchSettings(inRect);
+                    break;
             }
             //Log.Warning(Apparel.def.label);
 
@@ -739,6 +124,613 @@ namespace HeadApparelTweaker
             {
                 InGameSetting = false;
             }
+        }
+
+        private void DrawBasicSettings(List<ThingDef> list, Rect inRect)
+        {
+            Rect rect0 = inRect.BottomPart(0.95f);
+            int ShowCount = 5;
+            List<ThingDef> list1 = list.Where(a1 => a1.label.IndexOf(search) != -1).ToList();
+            if (Widgets.ButtonText(rect0.TopPart(0.052f), "↑"))
+            {
+                if (HatStartIndex - ShowCount >= 0)
+                {
+                    HatStartIndex -= ShowCount;
+                }
+            }
+
+            if (Widgets.ButtonText(rect0.BottomPart(0.052f), "↓"))
+            {
+                if (list1 != null && HatStartIndex + ShowCount < list.Count)
+                {
+                    HatStartIndex += ShowCount;
+                }
+            }
+            Rect r2 = new Rect(inRect.x, (inRect.y + inRect.height * 0.05f) + inRect.height * 0.95f * 0.052f, inRect.width, inRect.height * 0.95f * 0.896f);
+            Widgets.DrawWindowBackground(r2);
+            if (!list1.NullOrEmpty())
+            {
+                if (HatStartIndex >= list.Count)
+                {
+                    HatStartIndex = 0;
+                }
+                Rect rt3 = new Rect(r2.x, r2.y, r2.width, r2.height / 5);
+                for (int i = HatStartIndex; i < HatStartIndex + 5 && i < list1.Count; i++)
+                {
+                    ThingDef def = list1[i];
+                    GUI.color = new ColorInt(97, 108, 122).ToColor;
+                    GUI.DrawTexture(new Rect(rt3.x, rt3.y + rt3.height, rt3.width, 4f), BaseContent.WhiteTex);
+                    Widgets.DrawLineHorizontal(rt3.x + 0.85f * rt3.height, rt3.y + rt3.height / 2, rt3.width - 0.85f * rt3.height);
+                    Widgets.DrawLineVertical(rt3.x + 0.85f * rt3.height, rt3.y, rt3.height);
+                    Widgets.DrawLineVertical(rt3.x + 0.85f * rt3.height + (rt3.width - 0.85f * rt3.height) / 5, rt3.y, rt3.height);
+                    Widgets.DrawLineVertical(rt3.x + 0.85f * rt3.height + 2 * (rt3.width - 0.85f * rt3.height) / 5, rt3.y, rt3.height);
+                    Widgets.DrawLineVertical(rt3.x + 0.85f * rt3.height + 3 * (rt3.width - 0.85f * rt3.height) / 5, rt3.y, rt3.height);
+                    Widgets.DrawLineVertical(rt3.x + 0.85f * rt3.height + 4 * (rt3.width - 0.85f * rt3.height) / 5, rt3.y, rt3.height);
+
+                    GUI.color = Color.white;
+                    Rect rect = new Rect(rt3.x + 0.1f * rt3.height, rt3.y + 0.1f * rt3.height, rt3.height * 0.6f, rt3.height * 0.6f);
+                    Widgets.DrawBox(rect);
+                    if (def.uiIcon != null)
+                        GUI.DrawTexture(rect, def.uiIcon);
+                    Rect rect1 = new Rect(rt3.x + 0.05f * rt3.height, rt3.y + rt3.height * 0.65f, rt3.height * 0.75f, rt3.height * 0.35f);
+                    GUI.Label(rect1, def.label, new GUIStyle(Verse.Text.CurFontStyle)
+                    {
+                        alignment = TextAnchor.MiddleCenter
+                    });
+                    HATweakerSetting.SingleInit(def);
+                    HATweakerSetting.HATSettingData data = HATweakerSetting.SettingData[def.defName];
+                    Rect rect2 = new Rect(rt3.x + 0.9f * rt3.height, rt3.y, (rt3.width - 0.85f * rt3.height) / 5 - 0.1f * rt3.height, rt3.height);
+                    if (Widgets.RadioButtonLabeled(rect2.TopHalf(), "No_Graphic".Translate(), data.NoGraphic))
+                    {
+                        data.NoGraphic = !data.NoGraphic;
+                    }
+                    if (!data.NoGraphic)
+                    {
+                        if (Mouse.IsOver(rect2.BottomHalf()))
+                        {
+                            Widgets.DrawHighlight(rect2.BottomHalf());
+                        }
+                        if (Widgets.RadioButtonLabeled(rect2.BottomHalf(), "No_Beard".Translate(), data.NoBeard))
+                        {
+                            data.NoBeard = !data.NoBeard;
+                        }
+                        rect2.x += (rt3.width - 0.85f * rt3.height) / 5;
+                        if (Mouse.IsOver(rect2.TopHalf()))
+                        {
+                            Widgets.DrawHighlight(rect2.TopHalf());
+                        }
+                        if (Widgets.RadioButtonLabeled(rect2.TopHalf(), "No_Hair".Translate(), data.NoHair))
+                        {
+                            data.NoHair = !data.NoHair;
+                        }
+                        if (Mouse.IsOver(rect2.BottomHalf()))
+                        {
+                            Widgets.DrawHighlight(rect2.BottomHalf());
+                        }
+                        if (Widgets.RadioButtonLabeled(rect2.BottomHalf(), "Hide_Indoor".Translate(), data.HideInDoor))
+                        {
+                            data.HideInDoor = !data.HideInDoor;
+                        }
+                        rect2.x += (rt3.width - 0.85f * rt3.height) / 5;
+                        if (Mouse.IsOver(rect2.TopHalf()))
+                        {
+                            Widgets.DrawHighlight(rect2.TopHalf());
+                        }
+                        if (Widgets.RadioButtonLabeled(rect2.TopHalf(), "Hide_No_Fight".Translate(), data.HideNoFight))
+                        {
+                            data.HideNoFight = !data.HideNoFight;
+                        }
+                        if (Mouse.IsOver(rect2.BottomHalf()))
+                        {
+                            Widgets.DrawHighlight(rect2.BottomHalf());
+                        }
+                        if (Widgets.RadioButtonLabeled(rect2.BottomHalf(), "Hide_In_Bed".Translate(), data.HideInBed))
+                        {
+                            data.HideInBed = !data.HideInBed;
+                        }
+
+                    }
+                    rt3.y += rt3.height;
+                }
+            }
+        }
+
+        private void DrawAdvanceSettings(List<ThingDef> list, Rect inRect)
+        {
+            float LabelHeigh = 30f;
+            Rect rect0 = inRect.BottomPart(0.95f);
+            InGameSetting = Find.CurrentMap != null && Find.CurrentMap.mapPawns != null && Find.CurrentMap.mapPawns.ColonistsSpawnedCount > 0;
+            Rect outRect = rect0.LeftPart(0.3f);
+            Widgets.DrawWindowBackground(outRect);
+            Rect viewRect = new Rect(-3f, -3f, outRect.width - 26f, (LabelHeigh + 5f) * IndexCount + 3f);
+            Rect rect1 = new Rect(LabelHeigh + 5f, 0f, outRect.width - 60f, LabelHeigh);
+            Rect rect2 = new Rect(0f, 0f, LabelHeigh, LabelHeigh);
+            Widgets.BeginScrollView(outRect, ref this.loc, viewRect, true);
+            int se = 0;
+            //Draw ScrollView;
+            foreach (ThingDef c in list)
+            {
+                if (c.label.IndexOf(search) != -1)
+                {
+                    se++;
+                    if (Mouse.IsOver(rect1))
+                    {
+                        Widgets.DrawHighlight(rect1);
+                    }
+                    if (Widgets.RadioButtonLabeled(rect1, c.label, choose == c.defName))
+                    {
+                        choose = c.defName;
+                    }
+                    Widgets.DrawBox(rect2);
+                    if (c.uiIcon != null)
+                        GUI.DrawTexture(rect2, c.uiIcon);
+                    rect1.y += (LabelHeigh + 5f);
+                    rect2.y += (LabelHeigh + 5f);
+                }
+            }
+            IndexCount = se;
+            Widgets.EndScrollView();
+            //MainSetting
+            ThingDef def = list.FirstOrDefault(x => x.defName == choose);
+            HATweakerSetting.SingleInit(def);
+            Rect main = rect0.RightPart(0.69f);
+            Widgets.DrawWindowBackground(main);
+            HATweakerSetting.HATSettingData data = HATweakerSetting.SettingData[choose];
+            Widgets.BeginScrollView(main.LeftHalf(), ref position0, new Rect(0, 0, main.width / 2 - 18f, height0));
+            Rect main1 = new Rect(5f, 5f, main.width / 2 - 28f, LabelHeigh);
+            LabelHeigh -= 3f;
+            if (Mouse.IsOver(main1))
+            {
+                Widgets.DrawHighlight(main1);
+            }
+            if (Widgets.RadioButtonLabeled(main1, "No_Graphic".Translate(), data.NoGraphic))
+            {
+                data.NoGraphic = !data.NoGraphic;
+            }
+            if (!data.NoGraphic)
+            {
+                main1.y += LabelHeigh;
+                if (Mouse.IsOver(main1))
+                {
+                    Widgets.DrawHighlight(main1);
+                }
+                if (Widgets.RadioButtonLabeled(main1, "No_Hair".Translate(), data.NoHair))
+                {
+                    data.NoHair = !data.NoHair;
+                }
+                main1.y += LabelHeigh;
+                if (Mouse.IsOver(main1))
+                {
+                    Widgets.DrawHighlight(main1);
+                }
+                if (Widgets.RadioButtonLabeled(main1, "No_Beard".Translate(), data.NoBeard))
+                {
+                    data.NoBeard = !data.NoBeard;
+                }
+                main1.y += LabelHeigh;
+                if (Mouse.IsOver(main1))
+                {
+                    Widgets.DrawHighlight(main1);
+                }
+                if (Widgets.RadioButtonLabeled(main1, "Hide_Indoor".Translate(), data.HideInDoor))
+                {
+                    data.HideInDoor = !data.HideInDoor;
+                }
+                main1.y += LabelHeigh;
+                if (Mouse.IsOver(main1))
+                {
+                    Widgets.DrawHighlight(main1);
+                }
+                if (Widgets.RadioButtonLabeled(main1, "Hide_No_Fight".Translate(), data.HideNoFight))
+                {
+                    data.HideNoFight = !data.HideNoFight;
+                }
+                main1.y += LabelHeigh;
+                if (Mouse.IsOver(main1))
+                {
+                    Widgets.DrawHighlight(main1);
+                }
+                if (Widgets.RadioButtonLabeled(main1, "Hide_In_Bed".Translate(), data.HideInBed))
+                {
+                    data.HideInBed = !data.HideInBed;
+                }
+
+                main1.y += (LabelHeigh + 10f);
+                Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
+                LabelHeigh += 3f;
+                Widgets.CheckboxLabeled(main1, "Advance_Mode".Translate(), ref data.AdvanceMode);
+                if (data.AdvanceMode)
+                {
+                    main1.y += (main1.height + 2f);
+                    main1.height = LabelHeigh + 8f;
+                    Rect copyLoc = new Rect(main1.x, main1.y, main1.height, main1.height);
+                    if (Widgets.ButtonImage(copyLoc, TexButton.Copy))
+                    {
+                        if (copyData == null)
+                        {
+                            copyData = new HATweakerSetting.HATSettingData();
+                        }
+                        copyData.NorthOffset = data.NorthOffset;
+                        copyData.EastOffset = data.EastOffset;
+                        copyData.SouthOffset = data.SouthOffset;
+                        copyData.WestOffset = data.WestOffset;
+                        copyData.NorthRotation = data.NorthRotation;
+                        copyData.EastRotation = data.EastRotation;
+                        copyData.SouthRotation = data.SouthRotation;
+                        copyData.WestRotation = data.WestRotation;
+                        copyData.size = data.size;
+                        copyData.LayerOffset = data.LayerOffset;
+                        copy = true;
+                    };
+                    copyLoc.x += copyLoc.width + 5f;
+                    if (copy && Widgets.ButtonImage(copyLoc, TexButton.Paste))
+                    {
+                        data.NorthOffset = copyData.NorthOffset;
+                        data.EastOffset = copyData.EastOffset;
+                        data.SouthOffset = copyData.SouthOffset;
+                        data.WestOffset = copyData.WestOffset;
+                        data.NorthRotation = copyData.NorthRotation;
+                        data.EastRotation = copyData.EastRotation;
+                        data.SouthRotation = copyData.SouthRotation;
+                        data.WestRotation = copyData.WestRotation;
+                        data.size = copyData.size;
+                        data.LayerOffset = copyData.LayerOffset;
+                    };
+                    main1.y += (main1.height + 5f);
+                    Widgets.Label(main1.LeftPart(0.7f), "Size".Translate() + ":" + data.size.ToString("F2"));
+                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
+                    {
+                        data.size = Vector2.one;
+                    }
+                    main1.y += (main1.height + 2f);
+                    data.size.x =
+                    Widgets.HorizontalSlider(main1, data.size.x, 0.5f, 2f);
+                    main1.y += (main1.height);
+                    data.size.y =
+                    Widgets.HorizontalSlider(main1, data.size.y, 0.5f, 2f);
+                    main1.y += (main1.height + 5f);
+                    Widgets.Label(main1.LeftPart(0.7f), "South".Translate() + ":" + data.SouthOffset.ToString("F2"));
+                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
+                    {
+                        data.SouthOffset = Vector2.zero;
+                    }
+                    main1.y += (main1.height + 2f);
+                    data.SouthOffset.x =
+                    Widgets.HorizontalSlider(main1, data.SouthOffset.x, -1, 1);
+                    main1.y += (main1.height);
+                    data.SouthOffset.y =
+                    Widgets.HorizontalSlider(main1, data.SouthOffset.y, -1, 1);
+                    main1.y += (main1.height + 5f);
+                    Widgets.Label(main1.LeftPart(0.7f), "North".Translate() + ":" + data.NorthOffset.ToString("F2"));
+                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
+                    {
+                        data.NorthOffset = Vector2.zero;
+                    }
+                    main1.y += (main1.height + 2f);
+                    data.NorthOffset.x =
+                    Widgets.HorizontalSlider(main1, data.NorthOffset.x, -1, 1);
+                    main1.y += (main1.height);
+                    data.NorthOffset.y =
+                    Widgets.HorizontalSlider(main1, data.NorthOffset.y, -1, 1);
+                    main1.y += (main1.height + 5f);
+                    Widgets.Label(main1.LeftPart(0.7f), "West".Translate() + ":" + data.WestOffset.ToString("f2"));
+                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
+                    {
+                        data.WestOffset = Vector2.zero;
+                    }
+                    main1.y += (main1.height + 2f);
+                    data.WestOffset.x =
+                    Widgets.HorizontalSlider(main1, data.WestOffset.x, -1, 1);
+                    main1.y += (main1.height);
+                    data.WestOffset.y =
+                    Widgets.HorizontalSlider(main1, data.WestOffset.y, -1, 1);
+                    main1.y += (main1.height + 5f);
+                    Widgets.Label(main1.LeftPart(0.7f), "East".Translate() + ":" + data.EastOffset.ToString("f2"));
+                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
+                    {
+                        data.EastOffset = Vector2.zero;
+                    }
+                    main1.y += (main1.height + 2f);
+                    data.EastOffset.x =
+                    Widgets.HorizontalSlider(main1, data.EastOffset.x, -1, 1);
+                    main1.y += (main1.height);
+                    data.EastOffset.y =
+                    Widgets.HorizontalSlider(main1, data.EastOffset.y, -1, 1);
+                    main1.y += (main1.height + 5f);
+                    Widgets.Label(main1.LeftPart(0.7f), "Rotate".Translate() + ":" + "South".Translate() + "[" + data.SouthRotation.ToString("0") + "]" + "North".Translate() + "[" + data.NorthRotation.ToString("0") + "]");
+                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
+                    {
+                        data.SouthRotation = 0f;
+                        data.NorthRotation = 0f;
+                    }
+                    main1.y += (main1.height + 2f);
+                    data.SouthRotation =
+                    Widgets.HorizontalSlider(main1, data.SouthRotation, -180, 180);
+                    main1.y += (main1.height);
+                    data.NorthRotation =
+                    Widgets.HorizontalSlider(main1, data.NorthRotation, -180, 180);
+                    main1.y += (main1.height + 5f);
+                    Widgets.Label(main1.LeftPart(0.7f), "Rotate".Translate() + ":" + "East".Translate() + "[" + data.EastRotation.ToString("0") + "]" + "West".Translate() + "[" + data.WestRotation.ToString("0") + "]");
+                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
+                    {
+                        data.EastRotation = 0f;
+                        data.WestRotation = 0f;
+                    }
+                    main1.y += (main1.height + 2f);
+                    data.EastRotation =
+                    Widgets.HorizontalSlider(main1, data.EastRotation, -180, 180);
+                    main1.y += (main1.height);
+                    data.WestRotation =
+                    Widgets.HorizontalSlider(main1, data.WestRotation, -180, 180);
+                    main1.y += (main1.height + 5f);
+                    Widgets.Label(main1.LeftPart(0.7f), "Layer_Offset".Translate() + ":" + data.LayerOffset.ToString("f5"));
+                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
+                    {
+                        data.LayerOffset = 0f;
+                    }
+                    main1.y += (main1.height + 2f);
+                    data.LayerOffset = Widgets.HorizontalSlider(main1, data.LayerOffset, -0.003f, +0.003f);
+                }
+            }
+            Widgets.EndScrollView();
+            LabelHeigh = 30f;
+            height0 = main1.y + LabelHeigh;
+            Rect main2 = main.RightHalf();
+            Rect main3 = new Rect(main2.x, main2.y, main2.width, main2.height - LabelHeigh - 5f);
+            Widgets.DrawWindowBackground(main3);
+            if (InGameSetting)
+            {
+                List<Pawn> Colonists = Current.Game.CurrentMap.mapPawns.FreeColonists;
+                if (!Colonists.NullOrEmpty())
+                {
+                    if (PawnName == null)
+                    {
+                        PawnName = Colonists.FirstOrDefault().Name.ToStringFull;
+                    }
+                    if (pawn == null)
+                    {
+                        pawn = Colonists.FirstOrDefault();
+                    }
+                    if (PawnName != null && Widgets.ButtonText(main3.TopPart(0.05f), PawnName))
+                    {
+                        List<FloatMenuOption> Options = new List<FloatMenuOption>();
+                        for (int i = 0; i < Colonists.Count; i++)
+                        {
+                            Pawn pa = Colonists[i];
+                            string now = "";
+                            if (pa.Name.ToStringFull == PawnName)
+                            {
+                                now = "(Now)".Translate();
+                            }
+                            Options.Add(new FloatMenuOption(pa.Name.ToStringShort + now, () => PawnName = pa.Name.ToStringFull));
+                        }
+                        Find.WindowStack.Add(new FloatMenu(Options));
+                    }
+                    if (pawn != null && pawn.Name.ToStringFull != PawnName)
+                    {
+                        if (pawn.apparel != null)
+                        {
+                            pawn.apparel.Notify_ApparelChanged();
+                        }
+                        pawn = Colonists.FirstOrDefault(x => x.Name.ToStringFull == PawnName);
+                        if (pawn == null)
+                        {
+                            PawnName = null;
+                        }
+                        else
+                        {
+                            PawnName = pawn.Name.ToStringFull;
+                        }
+                    }
+                }
+                else
+                {
+                    PawnName = null;
+                    pawn = null;
+                    HATweakerCache.texture = null;
+                }
+            }
+            if (!choose.NullOrEmpty() && pawn != null && InGameSetting)
+            {
+                if (apparel != null)
+                {
+                    if (apparel.def.defName != choose)
+                    {
+                        apparel = HATweakerUtility.NewApparel(choose);
+                    }
+                }
+                else
+                {
+                    apparel = HATweakerUtility.NewApparel(choose);
+                }
+            }
+            if (pawn != null && InGameSetting)
+            {
+                HATweakerUtility.DrawPawnCache(pawn, new Vector2(main2.width, main2.height), direction, out HATweakerCache.texture);
+                if (HATweakerCache.texture != null)
+                {
+                    GUI.DrawTexture(main3.BottomPart(0.95f), HATweakerCache.texture);
+                }
+            }
+            else
+            {
+                GUI.Label(main3, "Into_Game".Translate());
+            }
+            Rect main4 = new Rect(main2.x, main2.y + main2.height - LabelHeigh, main2.width, LabelHeigh);
+            if (Widgets.ButtonText(main4.LeftPart(0.32f), "←—"))
+            {
+                if (direction == Rot4.South)
+                {
+                    direction = Rot4.West;
+                }
+                else if (direction == Rot4.West)
+                {
+                    direction = Rot4.North;
+                }
+                else if (direction == Rot4.North)
+                {
+                    direction = Rot4.East;
+                }
+                else
+                {
+                    direction = Rot4.South;
+                }
+            }
+
+            Rect two = main4.RightPart(0.66f).LeftHalf();
+            if (Mouse.IsOver(two))
+            {
+                TooltipHandler.TipRegion(two, "Reset_Change_Tooltip".Translate());
+            }
+            if (Widgets.ButtonText(two, "Reset_Change".Translate()))
+            {
+                if (data.AdvanceMode)
+                {
+                    data.size = Vector2.one;
+                    data.SouthOffset = Vector2.zero;
+                    data.NorthOffset = Vector2.zero;
+                    data.EastOffset = Vector2.zero;
+                    data.WestOffset = Vector2.zero;
+                    data.SouthRotation = 0f;
+                    data.NorthRotation = 0f;
+                    data.EastRotation = 0f;
+                    data.WestRotation = 0f;
+                }
+                if (!HATweakerSetting.SettingData.NullOrEmpty() && HATweakerSetting.SettingData.ContainsKey(def.defName))
+                {
+                    HATweakerSetting.SettingData.Remove(def.defName);
+                }
+
+            }
+            if (Widgets.ButtonText(main4.RightPart(0.32f), "—→"))
+            {
+                if (direction == Rot4.South)
+                {
+                    direction = Rot4.East;
+                }
+                else if (direction == Rot4.East)
+                {
+                    direction = Rot4.North;
+                }
+                else if (direction == Rot4.North)
+                {
+                    direction = Rot4.West;
+                }
+                else
+                {
+                    direction = Rot4.South;
+                }
+            }
+            void DrawAdjust(Rect rectAd, string label, ref float x, ref float y, Action action)
+            {
+                Rect rectLa = rectAd.TopPart(0.3f);
+                Widgets.Label(rectLa.LeftPart(0.7f), label);
+                if (Widgets.ButtonText(rectLa.RightPart(0.3f).TopHalf(), "Reset".Translate()))
+                {
+                    if (action != null)
+                    {
+                        action.Invoke();
+                    }
+
+                }
+                Rect rectXYL = rectAd.BottomPart(0.7f);
+                x =
+                Widgets.HorizontalSlider(rectXYL.TopHalf(), x, 0.5f, 2f);
+                y =
+                Widgets.HorizontalSlider(rectXYL.BottomHalf(), y, 0.5f, 2f);
+            }
+        }
+
+        private void DrawGlobalSettings(List<ThingDef> list, Rect inRect)
+        {
+            Rect rect0 = inRect.BottomPart(0.95f);
+            Rect one = rect0.TopPart(0.04f);
+            one.width /= 3f;
+            if (Widgets.ButtonText(one, "Quick_NoGraphic".Translate()))
+            {
+                QuickSetting(0, true);
+            }
+            one.x += one.width;
+            if (Widgets.ButtonText(one, "Quick_HideHair".Translate()))
+            {
+                QuickSetting(1, true);
+            }
+            one.x += one.width;
+            if (Widgets.ButtonText(one, "Quick_DisplayHair".Translate()))
+            {
+                QuickSetting(1, false);
+            }
+            one.x -= 2f * one.width;
+            one.width *= 3f;
+            one.y += one.height + 5f;
+            if (Widgets.ButtonText(one.LeftHalf(), "Quick_HideBeard".Translate()))
+            {
+                QuickSetting(2, true);
+            }
+            if (Widgets.ButtonText(one.RightHalf(), "Quick_DisplayBeard".Translate()))
+            {
+                QuickSetting(2, false);
+            }
+            one.y += one.height + 5f;
+            if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideInDoor".Translate()))
+            {
+                QuickSetting(3, true);
+            }
+
+            if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideInDoor".Translate()))
+            {
+                QuickSetting(3, false);
+            }
+            one.y += one.height + 5f;
+            if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideNoFight".Translate()))
+            {
+                QuickSetting(4, true);
+            }
+            if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideNoFight".Translate()))
+            {
+                QuickSetting(4, false);
+            }
+            one.y += one.height + 5f;
+            if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideInBed".Translate()))
+            {
+                QuickSetting(5, true);
+            }
+            if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideInBed".Translate()))
+            {
+                QuickSetting(5, false);
+            }
+            one.y += one.height + 5f;
+            if (Widgets.ButtonText(one, "Reset_All_Setting".Translate()))
+            {
+                HATweakerSetting.SettingData.Clear();
+                HATweakerSetting.InitSetting();
+            }
+            one.y += one.height + 5f;
+            if (Mouse.IsOver(one))
+            {
+                Widgets.DrawHighlight(one);
+            }
+            Widgets.CheckboxLabeled(one, "Only_Colonist".Translate(), ref HATweakerSetting.WorkOnColonist);
+            /*one.y += one.height + 5f;
+            if (IndexOfVEF != -1)
+            {
+                if (Mouse.IsOver(one))
+                {
+                    Widgets.DrawHighlight(one);
+                    TooltipHandler.TipRegion(one, "Restart_to_apply_settings".Translate());
+                }
+                Widgets.CheckboxLabeled(one, "Close_VEF_Draw_HeadApparel".Translate(), ref HATweakerSetting.CloseVEFDraw);
+                one.y += one.height + 5f;
+            }
+            if (IndexOfAR != -1)
+            {
+                if (Mouse.IsOver(one))
+                {
+                    Widgets.DrawHighlight(one);
+                    TooltipHandler.TipRegion(one, "Restart_to_apply_settings".Translate());
+                }
+                Widgets.CheckboxLabeled(one, "AlienRace_Patch".Translate(), ref HATweakerSetting.AlienRacePatch);
+            }*/
             void QuickSetting(int a, bool on)
             {
                 for (int i = 0; i < list.Count; i++)
@@ -752,33 +744,123 @@ namespace HeadApparelTweaker
                     else
                     {
                         data.NoGraphic = false;
-                        if (a == 1)
+                        switch (a)
                         {
-                            data.NoHair = on;
+                            case 1:
+                                data.NoHair = on;
+                                return;
+                            case 2:
+                                data.NoBeard = on;
+                                return;
+                            case 3:
+                                data.HideInDoor = on;
+                                return;
+                            case 4:
+                                data.HideNoFight = on;
+                                return;
+
                         }
-                        else
-                        if (a == 2)
-                        {
-                            data.NoBeard = on;
-                        }
-                        else
-                        if (a == 3)
-                        {
-                            data.HideInDoor = on;
-                        }
-                        else
-                        if (a == 4)
-                        {
-                            data.HideNoFight = on;
-                        }
-                        else
-                        {
-                            data.HideInBed = on;
-                        }
+                        data.HideInBed = on;
                     }
                 }
             }
         }
+
+        private void DrawPatchSettings(Rect inRect)
+        {
+            float LabelHeigh = 30f;
+            Rect rect0 = inRect.BottomPart(0.95f);
+            Dictionary<int, string> dict = HATweakerCache.alienCompatible.AllAddons;
+            Widgets.DrawWindowBackground(rect0);
+            float wi = (rect0.width - 36f) / 4;
+            Rect rect00 = new Rect(rect0.x + 5f, rect0.y + 5f, wi - 5f, LabelHeigh);
+            Widgets.DrawLineHorizontal(rect0.x, rect00.y + LabelHeigh, rect0.width, Color.grey);
+            Widgets.Label(rect00, "Race".Translate());
+            Widgets.DrawLineVertical(rect00.x + rect00.width, rect0.y, LabelHeigh + 5);
+            rect00.x += wi;
+            Widgets.Label(rect00, "Name".Translate());
+            Widgets.DrawLineVertical(rect00.x + rect00.width, rect0.y, LabelHeigh + 5);
+            rect00.x += wi;
+            Widgets.Label(rect00, "Path".Translate());
+            Widgets.DrawLineVertical(rect00.x + rect00.width, rect0.y, LabelHeigh + 5);
+            rect00.x += wi;
+            rect00.width = wi / 2 - 5f;
+            Widgets.Label(rect00, "With_Hair".Translate());
+            Widgets.DrawLineVertical(rect00.x + rect00.width, rect0.y, LabelHeigh + 5);
+            rect00.x += wi / 2;
+            Widgets.Label(rect00, "With_Beard".Translate());
+            Widgets.DrawLineVertical(rect00.x + rect00.width, rect0.y, LabelHeigh + 5);
+            Rect outRect = new Rect(rect0.x + 5f, rect0.y + LabelHeigh + 10f, rect0.width - 10f, rect0.height - LabelHeigh - 20f);
+            Rect viewRect = new Rect(0, 0, outRect.width - 26f, (LabelHeigh + 5f) * IndexCount + 3f);
+            Rect rect1 = new Rect(0f, 0f, viewRect.width / 4, LabelHeigh);
+            Widgets.BeginScrollView(outRect, ref this.loc, viewRect, true);
+            int se = 0;
+            //Draw ScrollView;
+
+            if (dict.Count != 0)
+            {
+                foreach (int dictKey in dict.Keys)
+                {
+                    string disc = dict[dictKey];
+                    if (disc.IndexOf(search) != -1)
+                    {
+                        se++;
+                        /*if (Mouse.IsOver(rect1))
+                        {
+                            Widgets.DrawHighlight(rect1);
+                        }
+                        if (Widgets.RadioButtonLabeled(rect1, c.label, choose == c.defName))
+                        {
+                            choose = c.defName;
+                        }*/
+                        string[] strings = disc.Split('|');
+                        for (int i = 0; i < 3; i++)
+                        {
+                            if (strings.Length > i)
+                            {
+                                Widgets.Label(rect1, strings[i]);
+                                rect1.x += rect1.width;
+                            }
+                        }
+                        if (Widgets.RadioButton(rect1.x + rect1.width / 4 - 17f, rect1.y, (!HATweakerSetting.WithHair.NullOrEmpty()) && HATweakerSetting.WithHair.Contains(disc)))
+                        {
+                            if ((!HATweakerSetting.WithHair.NullOrEmpty()) && HATweakerSetting.WithHair.Contains(disc))
+                            {
+                                HATweakerSetting.WithHair.Remove(disc);
+                            }
+                            else
+                            {
+                                if (HATweakerSetting.WithHair == null)
+                                {
+                                    HATweakerSetting.WithHair = new List<string>();
+                                }
+                                HATweakerSetting.WithHair.Add(disc);
+                            }
+                        }
+                        if (Widgets.RadioButton(rect1.x + rect1.width * 3 / 4 - 17f, rect1.y, (!HATweakerSetting.WithBeard.NullOrEmpty()) && HATweakerSetting.WithBeard.Contains(disc)))
+                        {
+                            if ((!HATweakerSetting.WithBeard.NullOrEmpty()) && HATweakerSetting.WithBeard.Contains(disc))
+                            {
+                                HATweakerSetting.WithBeard.Remove(disc);
+                            }
+                            else
+                            {
+                                if (HATweakerSetting.WithBeard == null)
+                                {
+                                    HATweakerSetting.WithBeard = new List<string>();
+                                }
+                                HATweakerSetting.WithBeard.Add(disc);
+                            }
+                        }
+                        rect1.x = 0f;
+                        rect1.y += (LabelHeigh + 5f);
+                    }
+                }
+            }
+            IndexCount = se;
+            Widgets.EndScrollView();
+        }
+
         public override string SettingsCategory()
         {
             return base.Content.Name.Translate();
@@ -903,8 +985,8 @@ namespace HeadApparelTweaker
             {
                 SettingData = new Dictionary<string, HATSettingData>();
             }
-            bool a;
-            bool b;
+            bool a = false;
+            bool b = false;
             bool c = !def.apparel.renderSkipFlags.NullOrEmpty();
             if (c)
             {
@@ -913,8 +995,11 @@ namespace HeadApparelTweaker
             }
             else
             {
-                b = def.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.FullHead);
-                a = b || def.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.UpperHead);
+                if (!def.apparel.bodyPartGroups.NullOrEmpty())
+                {
+                    b = def.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.FullHead);
+                    a = b || def.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.UpperHead);
+                }
             }
             if (SettingData.ContainsKey(def.defName))
             {
@@ -1039,50 +1124,42 @@ namespace HeadApparelTweaker
             public Vector3 getOffset(Rot4 headFace)
             {
                 Vector2 offset = Vector2.zero;
-                if (headFace == Rot4.North)
+                switch (headFace.AsInt)
                 {
-                    offset = NorthOffset;
+                    case 0:
+                        offset = NorthOffset;
+                        break;
+                    case 1:
+                        offset = EastOffset;
+                        break;
+                    case 2:
+                        offset = SouthOffset;
+                        break;
+                    case 3:
+                        offset = WestOffset;
+                        break;
                 }
-                else
-                if (headFace == Rot4.South)
-                {
-                    offset = SouthOffset;
-                }
-                else
-                if (headFace == Rot4.East)
-                {
-                    offset = EastOffset;
-                }
-                else
-                if (headFace == Rot4.West)
-                {
-                    offset = WestOffset;
-                }
-                return new Vector3(offset.x, LayerOffset, offset.y);
+                return new Vector3(offset.x / 10, LayerOffset, offset.y / 10);
             }
             public float getRotation(Rot4 headFace)
             {
-                if (headFace == Rot4.North)
+                float a = 0;
+                switch (headFace.AsInt)
                 {
-                    return NorthRotation;
+                    case 0:
+                        a = NorthRotation;
+                        break;
+                    case 1:
+                        a = EastRotation;
+                        break;
+                    case 2:
+                        a = SouthRotation;
+                        break;
+                    case 3:
+                        a = WestRotation;
+                        break;
                 }
-                else
-                if (headFace == Rot4.South)
-                {
-                    return SouthRotation;
-                }
-                else
-                if (headFace == Rot4.East)
-                {
-                    return EastRotation;
-                }
-                else
-                if (headFace == Rot4.West)
-                {
-                    return WestRotation;
-                }
-                else
-                    return 0;
+                return a / 4;
             }
 
         }
@@ -1095,16 +1172,16 @@ namespace HeadApparelTweaker
         internal static RenderTexture texture = null;
         public static HATweakerUtility.AlienCompatible alienCompatible = null;
 
-        /*public static List<string> Layers
+        public static List<string> Layers
         {
             get
             {
                 return HeadLayerListDefOf.AllHeadLayerList.HeadLayerList;
             }
-        }*/
+        }
         static HATweakerCache()
         {
-            HeadApparel = GetAllOverHead().NullOrEmpty() ? new List<ThingDef>() : GetAllOverHead();
+            HeadApparel = GetAllOverHead();
             HATweakerSetting.InitSetting();
             if (!HeadApparel.NullOrEmpty())
             {
@@ -1118,8 +1195,10 @@ namespace HeadApparelTweaker
         public static List<ThingDef> GetAllOverHead()
         {
             //List<ThingDef> HeadApparel = DefDatabase<ThingDef>.AllDefs.Where(x => x.IsApparel && x.apparel.LastLayer != null && Layers.Contains(x.apparel.LastLayer.defName)).ToList();
-            List<ThingDef> BodyHeadApparel = DefDatabase<ThingDef>.AllDefs.Where(x => x.IsApparel && x.apparel.bodyPartGroups != null && (x.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.FullHead)|| x.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.UpperHead))).ToList();
-            return HeadApparel;
+            List<ThingDef> BodyHeadApparel = DefDatabase<ThingDef>.AllDefs.Where(x => x.IsApparel &&
+            (((!x.apparel.bodyPartGroups.NullOrEmpty()) && (x.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.FullHead) || x.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.UpperHead)))
+            || ((!x.apparel.layers.NullOrEmpty()) && x.apparel.layers.Any(a => Layers.Contains(a.defName))))).ToList();
+            return BodyHeadApparel;
         }
 
     }
@@ -1364,7 +1443,8 @@ namespace HeadApparelTweaker
                     else if (i == 57)
                     {
                         yield return new CodeInstruction(OpCodes.Brfalse_S, a);
-                    }else if (i == 133)
+                    }
+                    else if (i == 133)
                     {
                         code.labels.Add(a);
                         yield return code;
@@ -1407,11 +1487,11 @@ namespace HeadApparelTweaker
             if ((!HATweakerSetting.WorkOnColonist || pawn.IsColonist) &&
                HATweakerSetting.SettingData.TryGetValue(def.defName, out HATweakerSetting.HATSettingData data))
             {
-                if (data.DefaultNoHair == data.NoHair && data.DefaultNoBeard == data.NoBeard)
+                /*if (data.DefaultNoHair == data.NoHair && data.DefaultNoBeard == data.NoBeard)
                 {
                     return origin;
                 }
-                else
+                else*/
                 {
                     List<RenderSkipFlagDef> list;
                     if (origin.NullOrEmpty())
@@ -1754,7 +1834,7 @@ namespace HeadApparelTweaker
             }
         }
     }
-    /*[DefOf]
+    [DefOf]
     public static class HeadLayerListDefOf
     {
         public static HeadLayerListDef AllHeadLayerList;
@@ -1762,5 +1842,5 @@ namespace HeadApparelTweaker
     public class HeadLayerListDef : Def
     {
         public List<string> HeadLayerList = new List<string>();
-    }*/
+    }
 }
