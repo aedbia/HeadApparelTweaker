@@ -342,7 +342,6 @@ namespace HeadApparelTweaker
                 if (data.AdvanceMode)
                 {
                     main1.y += (main1.height + 2f);
-                    main1.height = LabelHeigh + 8f;
                     Rect copyLoc = new Rect(main1.x, main1.y, main1.height, main1.height);
                     if (Widgets.ButtonImage(copyLoc, TexButton.Copy))
                     {
@@ -376,105 +375,56 @@ namespace HeadApparelTweaker
                         data.size = copyData.size;
                         data.LayerOffset = copyData.LayerOffset;
                     };
-                    main1.y += (main1.height + 5f);
-                    Widgets.Label(main1.LeftPart(0.7f), "Size".Translate() + ":" + data.size.ToString("F2"));
-                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                    {
-                        data.size = Vector2.one;
-                    }
-                    main1.y += (main1.height + 2f);
-                    data.size.x =
-                    Widgets.HorizontalSlider(main1, data.size.x, 0.5f, 2f);
-                    main1.y += (main1.height);
-                    data.size.y =
-                    Widgets.HorizontalSlider(main1, data.size.y, 0.5f, 2f);
-                    main1.y += (main1.height + 5f);
-                    Widgets.Label(main1.LeftPart(0.7f), "South".Translate() + ":" + data.SouthOffset.ToString("F2"));
-                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                    {
-                        data.SouthOffset = Vector2.zero;
-                    }
-                    main1.y += (main1.height + 2f);
-                    data.SouthOffset.x =
-                    Widgets.HorizontalSlider(main1, data.SouthOffset.x, -1, 1);
-                    main1.y += (main1.height);
-                    data.SouthOffset.y =
-                    Widgets.HorizontalSlider(main1, data.SouthOffset.y, -1, 1);
-                    main1.y += (main1.height + 5f);
-                    Widgets.Label(main1.LeftPart(0.7f), "North".Translate() + ":" + data.NorthOffset.ToString("F2"));
-                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                    {
-                        data.NorthOffset = Vector2.zero;
-                    }
-                    main1.y += (main1.height + 2f);
-                    data.NorthOffset.x =
-                    Widgets.HorizontalSlider(main1, data.NorthOffset.x, -1, 1);
-                    main1.y += (main1.height);
-                    data.NorthOffset.y =
-                    Widgets.HorizontalSlider(main1, data.NorthOffset.y, -1, 1);
-                    main1.y += (main1.height + 5f);
-                    Widgets.Label(main1.LeftPart(0.7f), "West".Translate() + ":" + data.WestOffset.ToString("f2"));
-                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                    {
-                        data.WestOffset = Vector2.zero;
-                    }
-                    main1.y += (main1.height + 2f);
-                    data.WestOffset.x =
-                    Widgets.HorizontalSlider(main1, data.WestOffset.x, -1, 1);
-                    main1.y += (main1.height);
-                    data.WestOffset.y =
-                    Widgets.HorizontalSlider(main1, data.WestOffset.y, -1, 1);
-                    main1.y += (main1.height + 5f);
-                    Widgets.Label(main1.LeftPart(0.7f), "East".Translate() + ":" + data.EastOffset.ToString("f2"));
-                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                    {
-                        data.EastOffset = Vector2.zero;
-                    }
-                    main1.y += (main1.height + 2f);
-                    data.EastOffset.x =
-                    Widgets.HorizontalSlider(main1, data.EastOffset.x, -1, 1);
-                    main1.y += (main1.height);
-                    data.EastOffset.y =
-                    Widgets.HorizontalSlider(main1, data.EastOffset.y, -1, 1);
-                    main1.y += (main1.height + 5f);
-                    Widgets.Label(main1.LeftPart(0.7f), "Rotate".Translate() + ":" + "South".Translate() + "[" + data.SouthRotation.ToString("0") + "]" + "North".Translate() + "[" + data.NorthRotation.ToString("0") + "]");
-                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
+                    Rect rectAdj = new Rect(main1.x, main1.y + main1.height + 3f, main1.width, (main1.height + 10) * 3);
+                    DrawAdjust(rectAdj, "Size".Translate() + ":" + data.size.ToString("F2"), ref data.size.x, ref data.size.y, 0.5f, 2, 0.01f, () => data.size = Vector2.one);
+                    rectAdj.y += rectAdj.height + 2f;
+                    DrawAdjust(rectAdj, "South".Translate() + ":" + data.SouthOffset.ToString("F2"), ref data.SouthOffset.x, ref data.SouthOffset.y, -1, 1, 0.01f, () => data.SouthOffset = Vector2.zero);
+                    rectAdj.y += rectAdj.height + 2f;
+                    DrawAdjust(rectAdj, "North".Translate() + ":" + data.NorthOffset.ToString("F2"), ref data.NorthOffset.x, ref data.NorthOffset.y, -1, 1, 0.01f, () => data.NorthOffset = Vector2.zero);
+                    rectAdj.y += rectAdj.height + 2f;
+                    DrawAdjust(rectAdj, "West".Translate() + ":" + data.WestOffset.ToString("F2"), ref data.WestOffset.x, ref data.WestOffset.y, -1, 1, 0.01f, () => data.WestOffset = Vector2.zero);
+                    rectAdj.y += rectAdj.height + 2f;
+                    DrawAdjust(rectAdj, "East".Translate() + ":" + data.EastOffset.ToString("F2"), ref data.EastOffset.x, ref data.EastOffset.y, -1, 1, 0.01f, () => data.EastOffset = Vector2.zero);
+                    rectAdj.y += rectAdj.height + 2f;
+                    DrawAdjust(rectAdj, "Rotate".Translate() + ":" + "South".Translate() + "[" + data.SouthRotation.ToString("0") + "]" + "North".Translate() + "[" + data.NorthRotation.ToString("0") + "]", ref data.SouthRotation, ref data.NorthRotation, -180, 180, 1, () =>
                     {
                         data.SouthRotation = 0f;
                         data.NorthRotation = 0f;
-                    }
-                    main1.y += (main1.height + 2f);
-                    data.SouthRotation =
-                    Widgets.HorizontalSlider(main1, data.SouthRotation, -180, 180);
-                    main1.y += (main1.height);
-                    data.NorthRotation =
-                    Widgets.HorizontalSlider(main1, data.NorthRotation, -180, 180);
-                    main1.y += (main1.height + 5f);
-                    Widgets.Label(main1.LeftPart(0.7f), "Rotate".Translate() + ":" + "East".Translate() + "[" + data.EastRotation.ToString("0") + "]" + "West".Translate() + "[" + data.WestRotation.ToString("0") + "]");
-                    if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
+                    });
+                    rectAdj.y += rectAdj.height + 2f;
+                    DrawAdjust(rectAdj, "Rotate".Translate() + ":" + "East".Translate() + "[" + data.EastRotation.ToString("0") + "]" + "West".Translate() + "[" + data.WestRotation.ToString("0") + "]", ref data.EastRotation, ref data.WestRotation, -180, 180, 1, () =>
                     {
                         data.EastRotation = 0f;
                         data.WestRotation = 0f;
-                    }
-                    main1.y += (main1.height + 2f);
-                    data.EastRotation =
-                    Widgets.HorizontalSlider(main1, data.EastRotation, -180, 180);
-                    main1.y += (main1.height);
-                    data.WestRotation =
-                    Widgets.HorizontalSlider(main1, data.WestRotation, -180, 180);
-                    main1.y += (main1.height + 5f);
+                    });
+                    main1.height = rectAdj.height * 0.4f;
+                    main1.y = rectAdj.y + rectAdj.height + 2f;
                     Widgets.Label(main1.LeftPart(0.7f), "Layer_Offset".Translate() + ":" + data.LayerOffset.ToString("f5"));
                     if (Widgets.ButtonText(main1.RightPart(0.3f).TopHalf(), "Reset".Translate()))
                     {
                         data.LayerOffset = 0f;
                     }
+                    main1.height = rectAdj.height * 0.3f;
                     main1.y += (main1.height + 2f);
+                    main1.width = main1.height;
+                    if (Widgets.ButtonImage(main1, TexButton.Minus))
+                    {
+                        data.LayerOffset = data.LayerOffset > -0.003f ? data.LayerOffset - 0.00001f : -0.003f;
+                    };
+                    main1.x += main1.width;
+                    main1.width = rectAdj.width - 2 * main1.height;
                     data.LayerOffset = Widgets.HorizontalSlider(main1, data.LayerOffset, -0.003f, +0.003f);
+                    main1.x += main1.width;
+                    main1.width = main1.height;
+                    if (Widgets.ButtonImage(main1, TexButton.Plus))
+                    {
+                        data.LayerOffset = data.LayerOffset < 0.003f ? data.LayerOffset + 0.00001f : 0.003f;
+                    };
                 }
             }
             Widgets.EndScrollView();
             LabelHeigh = 30f;
-            height0 = main1.y + LabelHeigh;
+            height0 = main1.y + main1.height + 5f;
             Rect main2 = main.RightHalf();
             Rect main3 = new Rect(main2.x, main2.y, main2.width, main2.height - LabelHeigh - 5f);
             Widgets.DrawWindowBackground(main3);
@@ -621,23 +571,48 @@ namespace HeadApparelTweaker
                     direction = Rot4.South;
                 }
             }
-            void DrawAdjust(Rect rectAd, string label, ref float x, ref float y, Action action)
+            void DrawAdjust(Rect rectAd, string label, ref float x, ref float y, float min, float max, float interval, Action action)
             {
-                Rect rectLa = rectAd.TopPart(0.3f);
+                Rect rectLa = rectAd.TopPart(0.4f);
                 Widgets.Label(rectLa.LeftPart(0.7f), label);
                 if (Widgets.ButtonText(rectLa.RightPart(0.3f).TopHalf(), "Reset".Translate()))
                 {
                     if (action != null)
                     {
-                        action.Invoke();
+                        action();
                     }
 
                 }
-                Rect rectXYL = rectAd.BottomPart(0.7f);
+                Rect rectXYL = rectAd.BottomPart(0.6f).TopHalf();
+                Rect minus = new Rect(rectXYL.x, rectXYL.y, rectXYL.height, rectXYL.height);
+                rectXYL.x += rectXYL.height;
+                rectXYL.width -= 2 * rectXYL.height;
+                if (Widgets.ButtonImage(minus, TexButton.Minus))
+                {
+                    x = x > min ? x - interval : min;
+                };
                 x =
-                Widgets.HorizontalSlider(rectXYL.TopHalf(), x, 0.5f, 2f);
+                Widgets.HorizontalSlider(rectXYL, x, min, max);
+                minus.x += (rectXYL.width + rectXYL.x);
+                if (Widgets.ButtonImage(minus, TexButton.Plus))
+                {
+                    x = x < max ? x + interval : max;
+                };
+                rectXYL.y += rectXYL.height;
+                minus.y += rectXYL.height;
+                minus.x -= (rectXYL.width + rectXYL.x);
+                if (Widgets.ButtonImage(minus, TexButton.Minus))
+                {
+                    y = y > min ? y - interval : min;
+                };
                 y =
-                Widgets.HorizontalSlider(rectXYL.BottomHalf(), y, 0.5f, 2f);
+                Widgets.HorizontalSlider(rectXYL.BottomHalf(), y, min, max);
+                minus.x += (rectXYL.width + rectXYL.x);
+                if (Widgets.ButtonImage(minus, TexButton.Plus))
+                {
+                    y = y < max ? y + interval : max;
+                };
+                Widgets.DrawLineHorizontal(rectAd.x + 5f, rectAd.y + rectAd.height, rectAd.width - 5f, Color.gray);
             }
         }
 
