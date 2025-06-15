@@ -2,10 +2,12 @@
 using HarmonyLib;
 using RimWorld;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Threading;
 using System.Xml;
 using UnityEngine;
 using Verse;
@@ -154,7 +156,7 @@ namespace HeadApparelTweaker
             {
                 unitCount = list1.SelectMany(a =>
                 {
-                    if (a.CanBeStyled())
+                    if (a.CanBeStyled() && !a.RelevantStyleCategories.NullOrEmpty())
                     {
                         return a.RelevantStyleCategories.SelectMany(s =>
                         {
@@ -202,7 +204,7 @@ namespace HeadApparelTweaker
                     HATweakerSetting.HATSettingData data = HATweakerSetting.SettingData[def.defName];
                     // 绘制背景色和纹理
                     GUI.color = new ColorInt(97, 108, 122).ToColor;
-                        GUI.DrawTexture(new Rect(rt3.x, rt3.y + rt3.height, rt3.width, data.ChildrenData.NullOrEmpty()?4f:1f), BaseContent.WhiteTex);
+                    GUI.DrawTexture(new Rect(rt3.x, rt3.y + rt3.height, rt3.width, data.ChildrenData.NullOrEmpty() ? 4f : 1f), BaseContent.WhiteTex);
                     // 绘制分割线
                     Widgets.DrawLineHorizontal(rt3.x + rt3.height, rt3.y + rt3.height / 2 + labH / 2, rt3.width - rt3.height);
                     for (int j = 0; j < 3; j++)
@@ -243,7 +245,7 @@ namespace HeadApparelTweaker
                         ThingStyleDef style = styles[s];
                         GUI.color = new ColorInt(97, 108, 122).ToColor;
                         float len = s == styles.Count - 1 ? rt3.x : rt3.x + 0.1f * rt3.height;
-                        GUI.DrawTexture(new Rect(len, rt3.y + rt3.height, rt3.width - 10f, s==styles.Count-1?4f:1f), BaseContent.WhiteTex);
+                        GUI.DrawTexture(new Rect(len, rt3.y + rt3.height, rt3.width - 10f, s == styles.Count - 1 ? 4f : 1f), BaseContent.WhiteTex);
 
 
                         // 绘制图标和标签
@@ -278,7 +280,7 @@ namespace HeadApparelTweaker
                                 Widgets.CheckboxLabeled(labelRect, useDefault1, ref data1.UseDefault);
                                 Widgets.DrawLineHorizontal(labelRect.x, rt3.y + labelRect.height, labelRect.width);
                                 // 绘制分割线
-                                
+
                                 float lineOffset1 = 0.9f * rt3.height;
                                 Widgets.DrawLineHorizontal(rt3.x + rt3.height, rt3.y + rt3.height / 2 + labH / 2, rt3.width - rt3.height);
                                 for (int j = 0; j < 3; j++)
@@ -391,7 +393,7 @@ namespace HeadApparelTweaker
                     {
                         choose = c.defName;
                         chooseStyle = "";
-                        if (apparel!=null&&apparel.def == c)
+                        if (apparel != null && apparel.def == c)
                         {
                             apparel.SetStyleDef(null);
                         }
@@ -415,63 +417,68 @@ namespace HeadApparelTweaker
             Rect main1 = new Rect(5f, 5f, main.width / 2 - 28f, LabelHeigh);
             if (def.CanBeStyled() && !data.ChildrenData.NullOrEmpty())
             {
-                Widgets.DrawBoxSolid(main1, Color.gray);
-                GUI.Label(main1, "Style".Translate(), labelStyle);
-                main1.y += LabelHeigh;
-                Widgets.CheckboxLabeled(main1, useDefault, ref data.UseDefault);
-                main1.y += LabelHeigh + 10f;
-                Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
                 List<ThingStyleDef> styles = HATweakerUtility.GetStyles(def);
-                Widgets.DrawHighlightIfMouseover(main1);
-                if (chooseStyle.NullOrEmpty())
+                if (!styles.NullOrEmpty())
                 {
-                    Widgets.DrawHighlightSelected(main1);
-                }
-                labelStyle.alignment = TextAnchor.MiddleRight;
-                Rect iconL = new Rect(main1.x, main1.y, main1.height, main1.height);
-                Rect labelR = new Rect(main1.x + main1.height, main1.y, main1.width - main1.height, main1.height);
-                GUI.DrawTexture(iconL, def.uiIcon);
-                GUI.Label(labelR, "Default".Translate(), labelStyle);
-                if (Widgets.ButtonInvisible(main1))
-                {
-                    chooseStyle = "";
-                    apparel.SetStyleDef(null);
-                }
-                main1.y += LabelHeigh;
-                iconL.y += LabelHeigh;
-                labelR.y += LabelHeigh;
 
-                for (int i = 0; i < styles.Count; i++)
-                {
-                    ThingStyleDef styleDef = styles[i];
+
+                    Widgets.DrawBoxSolid(main1, Color.gray);
+                    GUI.Label(main1, "Style".Translate(), labelStyle);
+                    main1.y += LabelHeigh;
+                    Widgets.CheckboxLabeled(main1, useDefault, ref data.UseDefault);
+                    main1.y += LabelHeigh + 10f;
+                    Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
+
                     Widgets.DrawHighlightIfMouseover(main1);
-                    if (chooseStyle == styleDef.defName)
+                    if (chooseStyle.NullOrEmpty())
                     {
                         Widgets.DrawHighlightSelected(main1);
                     }
-                    GUI.DrawTexture(iconL, styleDef.UIIcon);
-                    string a = styleDef.label.NullOrEmpty() ? styleDef.defName : styleDef.label;
-                    GUI.Label(labelR, a, labelStyle);
+                    labelStyle.alignment = TextAnchor.MiddleRight;
+                    Rect iconL = new Rect(main1.x, main1.y, main1.height, main1.height);
+                    Rect labelR = new Rect(main1.x + main1.height, main1.y, main1.width - main1.height, main1.height);
+                    GUI.DrawTexture(iconL, def.uiIcon);
+                    GUI.Label(labelR, "Default".Translate(), labelStyle);
                     if (Widgets.ButtonInvisible(main1))
                     {
-                        chooseStyle = styleDef.defName;
-                        if (apparel != null && apparel.def.defName == choose)
-                        {
-                            apparel.SetStyleDef(styleDef);
-                        }
+                        chooseStyle = "";
+                        apparel.SetStyleDef(null);
                     }
                     main1.y += LabelHeigh;
                     iconL.y += LabelHeigh;
                     labelR.y += LabelHeigh;
-                }
-                if (!chooseStyle.NullOrEmpty() && data.ChildrenData.TryGetValue(chooseStyle, out HATweakerSetting.HATSettingData data1))
-                {
-                    data = data1;
-                }
-                labelStyle.alignment = TextAnchor.MiddleCenter;
-                main1.y += 10f;
-                Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
 
+                    for (int i = 0; i < styles.Count; i++)
+                    {
+                        ThingStyleDef styleDef = styles[i];
+                        Widgets.DrawHighlightIfMouseover(main1);
+                        if (chooseStyle == styleDef.defName)
+                        {
+                            Widgets.DrawHighlightSelected(main1);
+                        }
+                        GUI.DrawTexture(iconL, styleDef.UIIcon);
+                        string a = styleDef.label.NullOrEmpty() ? styleDef.defName : styleDef.label;
+                        GUI.Label(labelR, a, labelStyle);
+                        if (Widgets.ButtonInvisible(main1))
+                        {
+                            chooseStyle = styleDef.defName;
+                            if (apparel != null && apparel.def.defName == choose)
+                            {
+                                apparel.SetStyleDef(styleDef);
+                            }
+                        }
+                        main1.y += LabelHeigh;
+                        iconL.y += LabelHeigh;
+                        labelR.y += LabelHeigh;
+                    }
+                    if (!chooseStyle.NullOrEmpty() && data.ChildrenData.TryGetValue(chooseStyle, out HATweakerSetting.HATSettingData data1))
+                    {
+                        data = data1;
+                    }
+                    labelStyle.alignment = TextAnchor.MiddleCenter;
+                    main1.y += 10f;
+                    Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
+                }
             }
             Widgets.DrawBoxSolid(main1, Color.gray);
             GUI.Label(main1, "Basic_Settings".Translate(), labelStyle);
@@ -889,31 +896,9 @@ namespace HeadApparelTweaker
                 HATweakerSetting.InitSetting();
             }
             one.y += one.height + 5f;
-            if (Mouse.IsOver(one))
-            {
-                Widgets.DrawHighlight(one);
-            }
             Widgets.CheckboxLabeled(one, "Only_Colonist".Translate(), ref HATweakerSetting.WorkOnColonist);
-            /*one.y += one.height + 5f;
-            if (IndexOfVEF != -1)
-            {
-                if (Mouse.IsOver(one))
-                {
-                    Widgets.DrawHighlight(one);
-                    TooltipHandler.TipRegion(one, "Restart_to_apply_settings".Translate());
-                }
-                Widgets.CheckboxLabeled(one, "Close_VEF_Draw_HeadApparel".Translate(), ref HATweakerSetting.CloseVEFDraw);
-                one.y += one.height + 5f;
-            }
-            if (IndexOfAR != -1)
-            {
-                if (Mouse.IsOver(one))
-                {
-                    Widgets.DrawHighlight(one);
-                    TooltipHandler.TipRegion(one, "Restart_to_apply_settings".Translate());
-                }
-                Widgets.CheckboxLabeled(one, "AlienRace_Patch".Translate(), ref HATweakerSetting.AlienRacePatch);
-            }*/
+            one.y += one.height + 5f;
+            Widgets.CheckboxLabeled(one, "useIsColonistCache".Translate(), ref HATweakerSetting.useIsColonistCache);
             void QuickSetting(int a, bool on)
             {
                 for (int i = 0; i < list.Count; i++)
@@ -1089,12 +1074,14 @@ namespace HeadApparelTweaker
     {
         public static Dictionary<string, HATSettingData> SettingData = new Dictionary<string, HATSettingData>();
         public static bool WorkOnColonist = true;
+        public static bool useIsColonistCache = false;
         public static List<string> WithHair = new List<string>();
         public static List<string> WithBeard = new List<string>();
 
         public override void ExposeData()
         {
             Scribe_Values.Look(ref WorkOnColonist, "WorkOnColonist", true);
+            Scribe_Values.Look(ref useIsColonistCache, "useIsColonistCache", false);
             Scribe_Collections.Look(ref WithHair, "WithHair");
             Scribe_Collections.Look(ref WithBeard, "WithBeard");
             List<string> names = SettingData.Keys.ToList();
@@ -1160,11 +1147,11 @@ namespace HeadApparelTweaker
 
         public static void SingleInit(ThingDef def)
         {
-            if (!def.IsApparel)
+            if (!def.IsApparel && def.apparel == null)
             {
                 return;
             }
-            if (SettingData.NullOrEmpty())
+            if (SettingData == null)
             {
                 SettingData = new Dictionary<string, HATSettingData>();
             }
@@ -1196,28 +1183,30 @@ namespace HeadApparelTweaker
             SettingData[def.defName].DefaultNoHair = a;
             SettingData[def.defName].DefaultNoBeard = b;
             SettingData[def.defName].DefaultNoEyes = c && b;
-            if (def.CanBeStyled())
+            if (def.CanBeStyled() && !def.RelevantStyleCategories.NullOrEmpty())
             {
                 if (SettingData[def.defName].ChildrenData == null)
                 {
                     SettingData[def.defName].ChildrenData = new Dictionary<string, HATSettingData>();
                 }
                 List<ThingStyleDef> styles = HATweakerUtility.GetStyles(def);
-                foreach (ThingStyleDef style in styles)
+                if (!styles.NullOrEmpty())
                 {
-                    if (!SettingData[def.defName].ChildrenData.ContainsKey(style.defName) || SettingData[def.defName].ChildrenData[style.defName] == null)
+                    foreach (ThingStyleDef style in styles)
                     {
-                        SettingData[def.defName].ChildrenData.SetOrAdd(style.defName, new HATSettingData()
+                        if (!SettingData[def.defName].ChildrenData.ContainsKey(style.defName) || SettingData[def.defName].ChildrenData[style.defName] == null)
                         {
-                            NoHair = a,
-                            NoBeard = b
-                        });
+                            SettingData[def.defName].ChildrenData.SetOrAdd(style.defName, new HATSettingData()
+                            {
+                                NoHair = a,
+                                NoBeard = b
+                            });
+                        }
+                        SettingData[def.defName].ChildrenData[style.defName].DefaultNoHair = a;
+                        SettingData[def.defName].ChildrenData[style.defName].DefaultNoBeard = b;
+                        SettingData[def.defName].ChildrenData[style.defName].DefaultNoEyes = c && b;
                     }
-                    SettingData[def.defName].ChildrenData[style.defName].DefaultNoHair = a;
-                    SettingData[def.defName].ChildrenData[style.defName].DefaultNoBeard = b;
-                    SettingData[def.defName].ChildrenData[style.defName].DefaultNoEyes = c && b;
                 }
-
             }
         }
         public class HATSettingData : IExposable
@@ -1321,7 +1310,7 @@ namespace HeadApparelTweaker
                 {
                     return false;
                 }
-                if (WorkOnColonist && !HATweakerCache.IsColonist(pawn))
+                if (WorkOnColonist && !pawn.IsColonist)
                 {
                     return true;
                 }
@@ -1400,9 +1389,8 @@ namespace HeadApparelTweaker
         public static Dictionary<string, DrawData> drawDataCache = new Dictionary<string, DrawData>();
         internal static RenderTexture texture = null;
         public static HATweakerUtility.AlienCompatible alienCompatible = null;
-        public static Dictionary<Pawn, bool> Colonists = new Dictionary<Pawn, bool>();
-        private static int tick = 0;
-        private static int call = 0;
+        private static HATCacheSystem<bool> Colonists = new HATCacheSystem<bool>();
+        private static bool working = false;
         public static List<string> Layers
         {
             get
@@ -1428,45 +1416,36 @@ namespace HeadApparelTweaker
         }
         public static bool IsColonist(Pawn pawn)
         {
-            call++;
-            ClearColonists();
-            if (Colonists.TryGetValue(pawn, out bool t))
+            if (HATweakerSetting.useIsColonistCache)
             {
-                return t;
-            }
-            else
-            {
-                bool a = pawn.IsColonist;
-                Colonists.SetOrAdd(pawn, a);
-                return a;
-            }
-        }
-        private static void ClearColonists()
-        {
-            if (call > 300)
-            {
-                call = 0;
-            }
-            else
-            {
-                return;
-            }
-            TickManager tm = Current.Game?.tickManager;
-            if (tm == null)
-            {
-                return;
-            }
-            int a = tm.TicksGame;
-            if (a - tick > 3000)
-            {
-                tick = a;
-                Colonists.Clear();
-            }
-        }
+                try
+                {
+                    if (pawn == null)
+                    {
+                        return false;
+                    }
+                    string a = pawn.Name.ToStringFull;
+                    if (Colonists == null)
+                    {
+                        Colonists = new HATCacheSystem<bool>();
+                    }
+                    if (Colonists.Count == 0 || !Colonists.TryGet(a, out bool ac))
+                    {
+                        bool isc = pawn.IsColonist;
+                        Colonists.Set(a, isc);
+                        return isc;
+                    }
+                    else
+                    {
+                        return Colonists.TryGet(a, out var isc) && isc;
 
-        private static void ColonistsCacheClear()
-        {
-
+                    }
+                }
+                catch
+                {
+                }
+            }
+            return pawn.IsColonist;
         }
 
         public static List<ThingDef> GetAllOverHead()
@@ -1476,6 +1455,273 @@ namespace HeadApparelTweaker
             (((!x.apparel.bodyPartGroups.NullOrEmpty()) && (x.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.FullHead) || x.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.UpperHead)))
             || ((!x.apparel.layers.NullOrEmpty()) && x.apparel.layers.Any(a => Layers.Contains(a.defName))))).ToList();
             return BodyHeadApparel;
+        }
+        protected class HATCacheSystem<T> : IDisposable
+        {
+            private class CacheItem<S>
+            {
+                public T Value;
+                public DateTime? AbsoluteExpiration;
+                public TimeSpan? SlidingExpiration;
+                public DateTime LastAccessTime;
+                public LinkedListNode<string> ListNode;
+            }
+            private readonly ConcurrentDictionary<string, CacheItem<T>> _cache;
+            private readonly LinkedList<string> _accessList = new LinkedList<string>();
+            private readonly int _maxCapacity;
+            private readonly Timer _cleanupTimer;
+            private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+            private long Hits;
+            private long Misses;
+            private long Evictions;
+            private long Expired;
+
+            public HATCacheSystem(int maxCapacity = 1000, TimeSpan? cleanupInterval = null)
+            {
+                _maxCapacity = maxCapacity;
+                _cache = new ConcurrentDictionary<string, CacheItem<T>>();
+                TimeSpan interval = cleanupInterval ?? TimeSpan.FromMinutes(5);
+                _cleanupTimer = new Timer(CleanExpiredItemsCallback, null, interval, interval);
+            }
+
+            public void Set(string key, T value,
+                TimeSpan? slidingExpiration = null,
+                DateTime? absoluteExpiration = null)
+            {
+                var now = DateTime.UtcNow;
+                var item = new CacheItem<T>
+                {
+                    Value = value,
+                    AbsoluteExpiration = absoluteExpiration,
+                    SlidingExpiration = slidingExpiration,
+                    LastAccessTime = now
+                };
+
+                _lock.EnterWriteLock();
+                try
+                {
+                    if (_cache.TryGetValue(key, out var existing))
+                    {
+                        if (existing.ListNode != null && existing.ListNode.List == _accessList)
+                        {
+                            _accessList.Remove(existing.ListNode);
+                        }
+                    }
+
+                    _cache[key] = item;
+                    var newNode = _accessList.AddFirst(key);
+                    item.ListNode = newNode;
+
+                    EvictIfNeeded();
+                }
+                finally
+                {
+                    _lock.ExitWriteLock();
+                }
+            }
+
+            public bool TryGet(string key, out T value)
+            {
+                value = default;
+                bool found = false;
+                bool expired = false;
+                CacheItem<T> item = null;
+
+                _lock.EnterUpgradeableReadLock();
+                try
+                {
+                    if (_cache.TryGetValue(key, out item))
+                    {
+                        found = true;
+                        var now = DateTime.UtcNow;
+                        expired = IsExpired(item, now);
+
+                        if (expired)
+                        {
+                            Interlocked.Increment(ref Expired);
+                            Interlocked.Increment(ref Misses);
+                        }
+                        else
+                        {
+                            if (item.SlidingExpiration.HasValue)
+                            {
+                                item.LastAccessTime = now;
+                            }
+
+                            _lock.EnterWriteLock();
+                            try
+                            {
+                                if (item.ListNode != null && item.ListNode.List == _accessList)
+                                {
+                                    _accessList.Remove(item.ListNode);
+                                    _accessList.AddFirst(item.ListNode);
+                                }
+                            }
+                            finally
+                            {
+                                _lock.ExitWriteLock();
+                            }
+
+                            value = item.Value;
+                            Interlocked.Increment(ref Hits);
+                            return true;
+                        }
+                    }
+                }
+                finally
+                {
+                    _lock.ExitUpgradeableReadLock();
+                }
+                if (found && expired)
+                {
+                    _lock.EnterWriteLock();
+                    try
+                    {
+                        if (_cache.TryGetValue(key, out item) && IsExpired(item, DateTime.UtcNow))
+                        {
+                            RemoveItem(key, item);
+                        }
+                    }
+                    finally
+                    {
+                        _lock.ExitWriteLock();
+                    }
+                }
+
+                if (!found)
+                {
+                    Interlocked.Increment(ref Misses);
+                }
+                return false;
+            }
+
+            private bool IsExpired(CacheItem<T> item, DateTime now)
+            {
+                if (item.AbsoluteExpiration.HasValue && item.AbsoluteExpiration.Value < now)
+                    return true;
+
+                if (item.SlidingExpiration.HasValue &&
+                    item.LastAccessTime.Add(item.SlidingExpiration.Value) < now)
+                    return true;
+
+                return false;
+            }
+
+            public void Remove(string key)
+            {
+                _lock.EnterWriteLock();
+                try
+                {
+                    if (_cache.TryRemove(key, out var item))
+                    {
+                        RemoveItem(key, item);
+                    }
+                }
+                finally
+                {
+                    _lock.ExitWriteLock();
+                }
+            }
+
+            private void RemoveItem(string key, CacheItem<T> item)
+            {
+                if (item.ListNode != null && item.ListNode.List == _accessList)
+                {
+                    _accessList.Remove(item.ListNode);
+                }
+            }
+
+            private void EvictIfNeeded()
+            {
+                if (_cache.Count <= _maxCapacity) return;
+
+                _lock.EnterWriteLock();
+                try
+                {
+                    while (_cache.Count > _maxCapacity && _accessList.Last != null)
+                    {
+                        var oldestKey = _accessList.Last.Value;
+                        if (_cache.TryRemove(oldestKey, out var item))
+                        {
+                            _accessList.RemoveLast();
+                            Interlocked.Increment(ref Evictions);
+                        }
+                    }
+                }
+                finally
+                {
+                    _lock.ExitWriteLock();
+                }
+            }
+
+            private void CleanExpiredItemsCallback(object state)
+            {
+                CleanExpiredItems();
+            }
+
+            private void CleanExpiredItems()
+            {
+                var now = DateTime.UtcNow;
+                var expiredKeys = new List<string>();
+
+                _lock.EnterReadLock();
+                try
+                {
+                    foreach (var kvp in _cache)
+                    {
+                        if (IsExpired(kvp.Value, now))
+                        {
+                            expiredKeys.Add(kvp.Key);
+                        }
+                    }
+                }
+                finally
+                {
+                    _lock.ExitReadLock();
+                }
+                if (expiredKeys.Count > 0)
+                {
+                    _lock.EnterWriteLock();
+                    try
+                    {
+                        foreach (var key in expiredKeys)
+                        {
+                            if (_cache.TryGetValue(key, out var item) &&
+                                IsExpired(item, DateTime.UtcNow))
+                            {
+                                RemoveItem(key, item);
+                                Interlocked.Increment(ref Expired);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        _lock.ExitWriteLock();
+                    }
+                }
+            }
+
+            public void Clear()
+            {
+                _lock.EnterWriteLock();
+                try
+                {
+                    _cache.Clear();
+                    _accessList.Clear();
+                }
+                finally
+                {
+                    _lock.ExitWriteLock();
+                }
+            }
+
+            public int Count => _cache.Count;
+
+            public void Dispose()
+            {
+                _lock?.Dispose();
+                _cleanupTimer?.Dispose();
+            }
         }
 
     }
@@ -1499,6 +1745,10 @@ namespace HeadApparelTweaker
 
         internal static List<ThingStyleDef> GetStyles(ThingDef def)
         {
+            if (def.RelevantStyleCategories.NullOrEmpty())
+            {
+                return new List<ThingStyleDef>();
+            }
             return def.RelevantStyleCategories.SelectMany(a =>
             {
                 return a.thingDefStyles.Where(b => b.ThingDef == def).Select(c => c.StyleDef);
@@ -1752,7 +2002,7 @@ namespace HeadApparelTweaker
 
         public static List<RenderSkipFlagDef> SetDispalyFlags(List<RenderSkipFlagDef> origin, Apparel apparel, Pawn pawn)
         {
-            if ((!HATweakerSetting.WorkOnColonist || HATweakerCache.IsColonist(pawn)) &&
+            if ((!HATweakerSetting.WorkOnColonist || pawn.IsColonist) &&
                HATweakerSetting.SettingData.TryGetValue(apparel.def.defName, out HATweakerSetting.HATSettingData data0))
             {
                 HATweakerSetting.HATSettingData data;
@@ -1830,7 +2080,7 @@ namespace HeadApparelTweaker
         }
         public static void SetRotateAndLoc(PawnRenderNode node, PawnDrawParms parms, ref Vector3 vec, ref Quaternion quat)
         {
-            if ((!HATweakerSetting.WorkOnColonist || HATweakerCache.IsColonist(parms.pawn)) &&
+            if ((!HATweakerSetting.WorkOnColonist || parms.pawn.IsColonist) &&
                 (node.Props.workerClass == typeof(PawnRenderNodeWorker_Apparel_Head) && node.children.NullOrEmpty()
             && HATweakerSetting.SettingData.TryGetValue(node.apparel != null ? node.apparel.def.defName : node.Props.debugLabel, out HATweakerSetting.HATSettingData data0)))
             {
@@ -1890,7 +2140,7 @@ namespace HeadApparelTweaker
 
         public static PawnRenderNodeProperties SetHeadClothesProps(PawnRenderNodeProperties properties, Thing cloth, Pawn pawn)
         {
-            if ((!HATweakerSetting.WorkOnColonist || HATweakerCache.IsColonist(pawn)) && HATweakerSetting.SettingData.TryGetValue(cloth.def.defName, out HATweakerSetting.HATSettingData data0))
+            if ((!HATweakerSetting.WorkOnColonist || pawn.IsColonist) && HATweakerSetting.SettingData.TryGetValue(cloth.def.defName, out HATweakerSetting.HATSettingData data0))
             {
                 HATweakerSetting.HATSettingData data;
                 if (!data0.UseDefault
@@ -1941,7 +2191,7 @@ namespace HeadApparelTweaker
         }
         public static void UpdateApparelData(Pawn pawn)
         {
-            if (HATweakerSetting.WorkOnColonist && !HATweakerCache.IsColonist(pawn))
+            if (HATweakerSetting.WorkOnColonist && !pawn.IsColonist)
             {
                 return;
             }
@@ -1992,7 +2242,7 @@ namespace HeadApparelTweaker
             if (thing is Pawn)
             {
                 Pawn pawn = thing as Pawn;
-                if (HATweakerSetting.WorkOnColonist && !HATweakerCache.IsColonist(pawn))
+                if (HATweakerSetting.WorkOnColonist && !pawn.IsColonist)
                 {
                     return;
                 }
