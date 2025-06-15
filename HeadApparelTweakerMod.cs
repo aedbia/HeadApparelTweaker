@@ -1310,7 +1310,7 @@ namespace HeadApparelTweaker
                 {
                     return false;
                 }
-                if (WorkOnColonist && !pawn.IsColonist)
+                if (WorkOnColonist && !HATweakerCache.IsColonist(pawn))
                 {
                     return true;
                 }
@@ -1331,7 +1331,7 @@ namespace HeadApparelTweaker
                     else
                     if (HideInDoor)
                     {
-                        return pawn.Map != null && pawn.Position != null && pawn.Position.UsesOutdoorTemperature(pawn.Map);
+                        return pawn.Map != null && pawn.Position.UsesOutdoorTemperature(pawn.Map);
                     }
                     else
                     {
@@ -2002,7 +2002,7 @@ namespace HeadApparelTweaker
 
         public static List<RenderSkipFlagDef> SetDispalyFlags(List<RenderSkipFlagDef> origin, Apparel apparel, Pawn pawn)
         {
-            if ((!HATweakerSetting.WorkOnColonist || pawn.IsColonist) &&
+            if ((!HATweakerSetting.WorkOnColonist || HATweakerCache.IsColonist(pawn)) &&
                HATweakerSetting.SettingData.TryGetValue(apparel.def.defName, out HATweakerSetting.HATSettingData data0))
             {
                 HATweakerSetting.HATSettingData data;
@@ -2080,7 +2080,7 @@ namespace HeadApparelTweaker
         }
         public static void SetRotateAndLoc(PawnRenderNode node, PawnDrawParms parms, ref Vector3 vec, ref Quaternion quat)
         {
-            if ((!HATweakerSetting.WorkOnColonist || parms.pawn.IsColonist) &&
+            if ((!HATweakerSetting.WorkOnColonist || HATweakerCache.IsColonist(parms.pawn)) &&
                 (node.Props.workerClass == typeof(PawnRenderNodeWorker_Apparel_Head) && node.children.NullOrEmpty()
             && HATweakerSetting.SettingData.TryGetValue(node.apparel != null ? node.apparel.def.defName : node.Props.debugLabel, out HATweakerSetting.HATSettingData data0)))
             {
@@ -2140,7 +2140,7 @@ namespace HeadApparelTweaker
 
         public static PawnRenderNodeProperties SetHeadClothesProps(PawnRenderNodeProperties properties, Thing cloth, Pawn pawn)
         {
-            if ((!HATweakerSetting.WorkOnColonist || pawn.IsColonist) && HATweakerSetting.SettingData.TryGetValue(cloth.def.defName, out HATweakerSetting.HATSettingData data0))
+            if ((!HATweakerSetting.WorkOnColonist || HATweakerCache.IsColonist(pawn)) && HATweakerSetting.SettingData.TryGetValue(cloth.def.defName, out HATweakerSetting.HATSettingData data0))
             {
                 HATweakerSetting.HATSettingData data;
                 if (!data0.UseDefault
@@ -2191,7 +2191,7 @@ namespace HeadApparelTweaker
         }
         public static void UpdateApparelData(Pawn pawn)
         {
-            if (HATweakerSetting.WorkOnColonist && !pawn.IsColonist)
+            if (HATweakerSetting.WorkOnColonist && !HATweakerCache.IsColonist(pawn))
             {
                 return;
             }
@@ -2242,7 +2242,7 @@ namespace HeadApparelTweaker
             if (thing is Pawn)
             {
                 Pawn pawn = thing as Pawn;
-                if (HATweakerSetting.WorkOnColonist && !pawn.IsColonist)
+                if (HATweakerSetting.WorkOnColonist && !HATweakerCache.IsColonist(pawn))
                 {
                     return;
                 }
