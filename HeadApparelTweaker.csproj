@@ -37,6 +37,9 @@
       <HintPath>E:\SteamLibrary\steamapps\workshop\content\294100\2009463077\Current\Assemblies\0Harmony.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="ABEasyLib">
+      <HintPath>E:\SteamLibrary\steamapps\common\RimWorld\Mods\ApparelTweakerLib\1.6\Assemblies\ABEasyLib.dll</HintPath>
+    </Reference>
     <Reference Include="AlienRace">
       <HintPath>E:\SteamLibrary\steamapps\workshop\content\294100\839005762\1.5\Assemblies\AlienRace.dll</HintPath>
       <Private>False</Private>
