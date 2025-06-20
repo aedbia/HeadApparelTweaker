@@ -1257,7 +1257,7 @@ namespace HeadApparelTweaker
                 Look(ref NorthRotation, "NorthRotation", 0);
                 Look(ref EastRotation, "EastRotation", 0);
                 Look(ref WestRotation, "WestRotation", 0);
-                Look(ref LayerOffset, "LayerOffset", 3);
+                Look(ref LayerOffset, "LayerOffset", 5);
                 void Look<T>(ref T values, string label, int keepCount = 0, T defaultValue = default, bool forceSave = false)
                 {
                     if (Scribe.mode == LoadSaveMode.Saving)
