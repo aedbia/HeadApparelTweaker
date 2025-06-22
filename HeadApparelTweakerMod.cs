@@ -1859,16 +1859,20 @@ namespace HeadApparelTweaker
 
         public static bool PreProcessApparel(Pawn pawn, PawnRenderTree tree, Apparel ap, PawnRenderNode headApparelNode, PawnRenderNode bodyApparelNode, Dictionary<PawnRenderNode, int> layerOffsets)
         {
-            return ApplyGraphicData(pawn) && CanDrawApparel(pawn, ap);
+            return CanDrawApparel(pawn, ap);
         }
 
         public static bool CanDrawApparel(Pawn pawn, Apparel ap)
         {
-            if (HATweakerMod.ShowPawnGraphic&&HATweakerMod.pawn == pawn && !HATweakerCache.HeadApparel.NullOrEmpty() && HATweakerCache.HeadApparel.Contains(ap.def) && ap != HATweakerMod.apparel)
+            if (ApplyGraphicData(pawn))
             {
-                return false;
+                if (HATweakerMod.ShowPawnGraphic && HATweakerMod.pawn == pawn && !HATweakerCache.HeadApparel.NullOrEmpty() && HATweakerCache.HeadApparel.Contains(ap.def) && ap != HATweakerMod.apparel)
+                {
+                    return false;
+                }
+                return CanDisplay(ap, pawn);
             }
-            return CanDisplay(ap, pawn);
+            return true;
         }
         private static bool ApplyGraphicData(Pawn pawn)
         {
