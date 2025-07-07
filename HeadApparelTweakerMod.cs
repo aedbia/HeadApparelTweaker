@@ -12,6 +12,7 @@ using System.Xml;
 using UnityEngine;
 using Verse;
 using static HeadApparelTweaker.HATSettingContents;
+using static HeadApparelTweaker.HATweakerSetting;
 using static Verse.DrawData;
 
 namespace HeadApparelTweaker
@@ -61,6 +62,10 @@ namespace HeadApparelTweaker
             HATweakerModIndex = LoadedModManager.RunningModsListForReading.FindIndex(mod => mod == base.Content);
             FWModIndex = LoadedModManager.RunningModsListForReading.FindIndex(mod => mod.PackageIdPlayerFacing == "aedbia.fashionwardrobe");
             AlienIndex = LoadedModManager.RunningModsListForReading.FindIndex(mod => mod.PackageIdPlayerFacing == "erdelf.HumanoidAlienRaces");
+            if (AlienIndex == -1)
+            {
+                AlienIndex = LoadedModManager.RunningModsListForReading.FindIndex(mod => mod.PackageIdPlayerFacing == "erdelf.HumanoidAlienRaces.dev");
+            }
             Harmony harmony = new Harmony(this.Content.PackageIdPlayerFacing);
             HarmonyPatchA5.PatchAllByHAT(harmony);
             if (AlienIndex != -1)
@@ -524,10 +529,6 @@ namespace HeadApparelTweaker
                     }
                     if (pawn != null && pawn.Name.ToStringFull != PawnName)
                     {
-                        if (pawn.apparel != null)
-                        {
-                            pawn.apparel.Notify_ApparelChanged();
-                        }
                         pawn = Colonists.FirstOrDefault(x => x.Name.ToStringFull == PawnName);
                         if (pawn == null)
                         {
@@ -557,40 +558,41 @@ namespace HeadApparelTweaker
             {
                 if (apparel != null)
                 {
-                    bool changeApparel = FWModIndex != -1 && HarmonyPatchA5.patchFWMod != null;
-                    if (changeApparel)
+                    try
                     {
-                        try
-                        {
-                            HarmonyPatchA5.patchFWMod.AddOrRemoveSettingFWApparel(pawn, apparel, true);
-                        }
-                        catch
+                        bool changeApparel = FWModIndex != -1 && HarmonyPatchA5.patchFWMod != null;
+                        if (changeApparel)
                         {
 
+                            HarmonyPatchA5.patchFWMod.AddOrRemoveSettingFWApparel(pawn, apparel, true);
+
                         }
-                    }
-                    else
-                    {
-                        pawn.apparel?.WornApparel?.Add(apparel);
-                    }
-                    ShowPawnGraphic = true;
-                    HATweakerUtility.DrawPawnCache(pawn, new Vector2(main2.width, main2.height), direction, out HATweakerCache.texture);
-                    ShowPawnGraphic = false;
-                    if (changeApparel)
-                    {
-                        try
+                        else if (pawn.apparel != null && pawn.apparel.WornApparel != null)
+                        {
+                            if (pawn.apparel.WornApparel.Count == 0 || !pawn.apparel.WornApparel.Any(ape => ape.def == apparel.def))
+                            {
+                                pawn.apparel.WornApparel.Add(apparel);
+                            }
+                        }
+                        ShowPawnGraphic = true;
+                        HATweakerUtility.DrawPawnCache(pawn, new Vector2(main2.width, main2.height), direction, out HATweakerCache.texture);
+                        ShowPawnGraphic = false;
+                        if (changeApparel)
                         {
                             HarmonyPatchA5.patchFWMod.AddOrRemoveSettingFWApparel(pawn, apparel, false);
+
                         }
-                        catch
+                        else if (pawn.apparel != null && pawn.apparel.WornApparel != null)
                         {
-
+                            if (pawn.apparel.WornApparel.Count != 0 && pawn.apparel.WornApparel.Contains(apparel))
+                            {
+                                pawn.apparel.WornApparel.Remove(apparel);
+                            }
                         }
-
                     }
-                    else
+                    catch (Exception e)
                     {
-                        pawn.apparel?.WornApparel?.Remove(apparel);
+                        Log.Error(e.Message);
                     }
 
                 }
@@ -808,7 +810,7 @@ namespace HeadApparelTweaker
                 for (int i = 0; i < list.Count; i++)
                 {
                     ThingDef def = list[i];
-                    if (HATweakerSetting.SettingData.TryGetValue(def.defName, out HATweakerSetting.HATSettingData data))
+                    if (HATweakerSetting.SettingData.TryGetValue(def.defName, out HATSettingData data))
                     {
                         if (a == 0)
                         {
@@ -836,8 +838,44 @@ namespace HeadApparelTweaker
                                     break;
                             }
                         }
+                        if (!data.ChildrenData.NullOrEmpty())
+                        {
+                            foreach (var data1 in data.ChildrenData.Values)
+                            {
+                                if (data1 != null)
+                                {
+                                    if (a == 0)
+                                    {
+                                        data1.NoGraphic = on;
+                                    }
+                                    else
+                                    {
+                                        data1.NoGraphic = false;
+                                        switch (a)
+                                        {
+                                            case 1:
+                                                data1.NoHair = on;
+                                                break;
+                                            case 2:
+                                                data1.NoBeard = on;
+                                                break;
+                                            case 3:
+                                                data1.HideInDoor = on;
+                                                break;
+                                            case 4:
+                                                data1.HideNoFight = on;
+                                                break;
+                                            case 5:
+                                                data1.HideInBed = on;
+                                                break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+                ResolveAllApparelGraphics();
             }
         }
 
@@ -846,6 +884,8 @@ namespace HeadApparelTweaker
             float LabelHeigh = 30f;
             Rect rect0 = inRect.BottomPart(0.95f);
             Dictionary<int, string> dict = HATweakerCache.alienCompatible.AllAddons;
+            var textures = HATweakerCache.alienCompatible.textures;
+            bool hasTextures = !textures.NullOrEmpty();
             Widgets.DrawWindowBackground(rect0);
             float wi = (rect0.width - 36f) / 4;
             Rect rect00 = new Rect(rect0.x + 5f, rect0.y + 5f, wi - 5f, LabelHeigh);
@@ -867,7 +907,8 @@ namespace HeadApparelTweaker
             Widgets.DrawLineVertical(rect00.x + rect00.width, rect0.y, LabelHeigh + 5);
             Rect outRect = new Rect(rect0.x + 5f, rect0.y + LabelHeigh + 10f, rect0.width - 10f, rect0.height - LabelHeigh - 20f);
             Rect viewRect = new Rect(0, 0, outRect.width - 26f, (LabelHeigh + 5f) * IndexCount + 3f);
-            Rect rect1 = new Rect(0f, 0f, viewRect.width / 4, LabelHeigh);
+            Rect rect1 = new Rect(0, 0f, viewRect.width / 4, LabelHeigh);
+            Rect iconLoc = new Rect(0, 0, rect1.width*3, LabelHeigh);
             Widgets.BeginScrollView(outRect, ref this.loc, viewRect, true);
             int se = 0;
             //Draw ScrollView;
@@ -880,14 +921,27 @@ namespace HeadApparelTweaker
                     if (disc.IndexOf(search) != -1)
                     {
                         se++;
-                        /*if (Mouse.IsOver(rect1))
+                        if (hasTextures && textures.TryGetValue(dictKey, out var tex)&&!tex.NullOrEmpty())
                         {
-                            Widgets.DrawHighlight(rect1);
+                            if (Mouse.IsOver(iconLoc))
+                            {
+                                Vector2 v;
+                                int co = tex.Count();
+                                if (co>2)
+                                {
+                                    v = new Vector2(200, 200);
+                                }
+                                else if(co == 1)
+                                {
+                                    v = new Vector2(100,100);
+                                }
+                                else
+                                {
+                                    v = new Vector2(200,100);
+                                }
+                                ABWidgetsExtensions.DrawTooltipsGrid(tex.ToArray(),v,2);
+                            }
                         }
-                        if (Widgets.RadioButtonLabeled(rect1, c.label, choose == c.defName))
-                        {
-                            choose = c.defName;
-                        }*/
                         string[] strings = disc.Split('|');
                         for (int i = 0; i < 3; i++)
                         {
@@ -927,8 +981,9 @@ namespace HeadApparelTweaker
                                 HATweakerSetting.WithBeard.Add(disc);
                             }
                         }
-                        rect1.x = 0f;
+                        rect1.x = 0;
                         rect1.y += (LabelHeigh + 5f);
+                        iconLoc.y += (LabelHeigh + 5f);
                     }
                 }
             }
@@ -1512,10 +1567,6 @@ namespace HeadApparelTweaker
                 {
                     return false;
                 }
-                if (WorkOnColonist && !ABEasyUtility.IsColonist(pawn))
-                {
-                    return true;
-                }
                 if (NoGraphic)
                 {
                     return false;
@@ -1788,6 +1839,7 @@ namespace HeadApparelTweaker
         public class AlienCompatible
         {
             public Dictionary<int, string> AllAddons = new Dictionary<int, string>();
+            public Dictionary<int, List<Texture2D>> textures = new Dictionary<int, List<Texture2D>>();
             public AlienCompatible()
             {
                 List<AlienRace.ThingDef_AlienRace> allRaces = DefDatabase<AlienRace.ThingDef_AlienRace>.AllDefs.ToList();
@@ -1802,7 +1854,58 @@ namespace HeadApparelTweaker
                     {
                         AlienRace.AlienPartGenerator.BodyAddon addon = allRaces[k].alienRace.generalSettings.alienPartGenerator.bodyAddons[i];
                         string b = a + "|" + (addon.Name.NullOrEmpty() ? "null" : addon.Name) + "|" + (addon.path.NullOrEmpty() ? "null" : addon.path);
-                        AllAddons.SetOrAdd(addon.GetHashCode(), b);
+                        int hash = addon.GetHashCode();
+                        AllAddons.SetOrAdd(hash, b);
+                        if (!addon.path.NullOrEmpty())
+                        {
+                            try
+                            {
+                                var texS = ContentFinder<Texture2D>.Get(addon.path + "_south", false);
+                                var texN = ContentFinder<Texture2D>.Get(addon.path + "_north", false);
+                                var texE = ContentFinder<Texture2D>.Get(addon.path + "_east", false);
+                                var texW = ContentFinder<Texture2D>.Get(addon.path + "_west", false);
+                                List<Texture2D> tex = new List<Texture2D>();
+                                if (texS != null)
+                                {
+                                    tex.Add(texS);  
+                                }
+                                if (texN != null)
+                                {
+                                    tex.Add(texN);
+                                }
+                                if (texE != null)
+                                {
+                                    tex.Add(texE);
+                                }
+                                if (texW != null)
+                                {
+                                    tex.Add(texW);
+                                }
+                                if (textures == null)
+                                {
+                                    textures = new Dictionary<int, List<Texture2D>>();
+                                }
+                                if (!tex.NullOrEmpty())
+                                {
+                                    textures.SetOrAdd(hash, tex);
+                                }
+                                /*if (graphics != null && graphics.Count() != 0)
+                                {
+                                    var gra = graphics.First();
+                                    string path = gra.GetPath();
+                                    if (!path.NullOrEmpty())
+                                    {
+                                        Log.Warning(path);
+                                        var tex = ContentFinder<Texture2D>.Get(path,false);
+                                        
+                                    }
+                                }*/
+                            }
+                            catch
+                            {
+                                continue;
+                            }
+                        }
                     }
                 }
             }
@@ -1857,16 +1960,21 @@ namespace HeadApparelTweaker
             }
         }
 
-        public static bool PreProcessApparel(Pawn pawn, PawnRenderTree tree, Apparel ap, PawnRenderNode headApparelNode, PawnRenderNode bodyApparelNode, Dictionary<PawnRenderNode, int> layerOffsets)
+        public static bool PreProcessApparel(Pawn pawn, PawnRenderTree tree, Apparel ap, PawnRenderNode headApparelNode, PawnRenderNode bodyApparelNode, Dictionary<PawnRenderNode, int> layerOffsets, ref IEnumerable<ValueTuple<PawnRenderNode, PawnRenderNode>> __result)
         {
-            return CanDrawApparel(pawn, ap);
+            bool a = CanDrawApparel(pawn, ap);
+            if (!a)
+            {
+                __result = new List<ValueTuple<PawnRenderNode, PawnRenderNode>>();
+            }
+            return a;
         }
 
         public static bool CanDrawApparel(Pawn pawn, Apparel ap)
         {
             if (ApplyGraphicData(pawn))
             {
-                if (HATweakerMod.ShowPawnGraphic && HATweakerMod.pawn == pawn && !HATweakerCache.HeadApparel.NullOrEmpty() && HATweakerCache.HeadApparel.Contains(ap.def) && ap != HATweakerMod.apparel)
+                if (HATweakerMod.ShowPawnGraphic && HATweakerMod.pawn == pawn && !HATweakerCache.HeadApparel.NullOrEmpty() && HATweakerCache.HeadApparel.Contains(ap.def) && ap.def != HATweakerMod.apparel.def)
                 {
                     return false;
                 }
@@ -2152,7 +2260,7 @@ namespace HeadApparelTweaker
 
         public class HarmonyPatchAlienRace
         {
-            private static Dictionary<string, string> raceName = new Dictionary<string, string>();
+            //private static Dictionary<string, string> raceName = new Dictionary<string, string>();
             public HarmonyPatchAlienRace(Harmony harmony)
             {
                 if (HATweakerMod.AlienIndex != -1)
