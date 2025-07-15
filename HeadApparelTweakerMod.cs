@@ -23,37 +23,24 @@ namespace HeadApparelTweaker
         private static int HATweakerModIndex = -1;
         internal static int FWModIndex = -1;
         public static int AlienIndex = -1;
-        internal static string choose = "";
+        internal static ThingDef choose;
         internal static string search = "";
-        private bool BarChange = false;
-        private int ChangeBarInt = 0;
-        private float IndexCount = 0;
         private Vector2 loc = Vector2.zero;
         private static Rot4 direction = Rot4.South;
-        internal static string PawnName = "";
         internal static Pawn pawn = null;
         internal static Apparel apparel = null;
         private Vector2 position0 = Vector2.zero;
         private float height0 = 0;
-        internal static bool InGameSetting = false;
         private static HATweakerSetting.HATSettingData copyData = new HATweakerSetting.HATSettingData();
-        private static bool copy;
+        private static bool copy = false;
+        private static bool ReDrawPawnTexture = true;
         private static Color color;
-        //private static readonly Texture2D NULL = ContentFinder<Texture2D>.Get("UI/Overlays/QuestionMark", true);
-
-        private int ChangeBar
-        {
-            get { return ChangeBarInt; }
-            set
-            {
-                if (value != ChangeBarInt)
-                {
-                    BarChange = true;
-                    ChangeBarInt = value;
-                }
-                ;
-            }
-        }
+        private bool reFliter = true;
+        private static QuickSearchWidget quickSearch = new QuickSearchWidget();
+        private static int TabInt = 0;
+        private static ThingStyleDef chooseStyle;
+        internal static bool ShowPawnGraphic = false;
+        private List<ThingDef> thingDefCache = new List<ThingDef>();
 
         public HATweakerMod(ModContentPack content) : base(content)
         {
@@ -73,6 +60,33 @@ namespace HeadApparelTweaker
                 new HarmonyPatchA5.HarmonyPatchAlienRace(harmony);
             }
         }
+        
+        private static List<TabRecord> tabs = new List<TabRecord>();
+        private void NotifyReFliter()
+        {
+            reFliter = true;
+        }
+
+        private void SetTabInt(int i)
+        {
+            TabInt = i;
+            Reset();
+            if (i>tabs.Count-1)
+            {
+                return;
+            }
+            for (int a = 0; a < tabs.Count; a++)
+            {
+                if (a == i)
+                {
+                    tabs[a].selected = true;
+                }
+                else
+                {
+                    tabs[a].selected = false;
+                }
+            }
+        }
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
@@ -82,80 +96,75 @@ namespace HeadApparelTweaker
                 return;
             }
 
-            if (choose.NullOrEmpty())
+            if (choose == null)
             {
-                choose = list.First().defName;
+                choose = list.First();
+                ReDrawPawnTexture = true;
             }
-
-            // Cache the Rect calculations
-            Rect searchRect = inRect.TopPart(0.04f).LeftPart(0.3f);
-            Rect selectionGridRect = inRect.TopPart(0.04f).RightPart(0.69f);
-
-            // Search Tool
-            List<string> ob = new List<string> { "Basic_Settings".Translate(), "Advanced_Settings".Translate(), "Global_Settings".Translate() };
-            int obCount = 3;
-            if (AlienIndex != -1)
+            float height = inRect.height * 0.04f;
+            Rect searchRect = new Rect(inRect.x, inRect.y, inRect.width * 0.3f, height);
+            Rect tabsRect = new Rect(inRect.x + inRect.width * 0.31f, inRect.y + height, inRect.width * 0.69f, height);
+            quickSearch.OnGUI(searchRect, NotifyReFliter, NotifyReFliter);
+            if (tabs == null)
             {
-                ob.Add("Alien_Patch_Settings".Translate());
-                obCount = 4;
+                tabs = new List<TabRecord>();
             }
-
-            // Cache GUIContent and GUIStyle
-            if (guiB == null || guiB.Length != ob.Count)
+            if (tabs.Empty())
             {
-                guiB = new GUIContent[ob.Count];
-                for (int i = 0; i < ob.Count; i++)
+                tabs.Add(new TabRecord("Basic_Settings".Translate(), () =>
                 {
-                    guiB[i] = new GUIContent(ob[i]);
+                    SetTabInt(0);
+                }, TabInt == 0));
+                tabs.Add(new TabRecord("Advanced_Settings".Translate(), () =>
+                {
+                    SetTabInt(1);
+                }, TabInt == 1));
+                tabs.Add(new TabRecord("Global_Settings".Translate(), () =>
+                {
+                    SetTabInt(2);
+                }, TabInt == 2));
+                if (AlienIndex != -1)
+                {
+                    tabs.Add(new TabRecord("Alien_Patch_Settings".Translate(), () =>
+                    {
+                        SetTabInt(3);
+                    }, TabInt == 3));
                 }
             }
-
-            if (guiA == null)
-            {
-                guiA = new GUIStyle(GUI.skin.window);
-                guiA.padding.bottom = -10;
-            }
-
-            search = Widgets.TextArea(searchRect, search);
-            ChangeBar = GUI.SelectionGrid(selectionGridRect, ChangeBar, guiB, obCount, guiA);
-
-            // Initialized ScrollView Data
-            switch (ChangeBar)
+            TabDrawer.DrawTabs(tabsRect, tabs);
+            switch (TabInt)
             {
                 case 0:
+                    tabs[0].selected = true;
                     DrawBasicSettings(list, inRect);
                     break;
                 case 1:
+                    tabs[1].selected = true;
                     DrawAdvanceSettings(list, inRect);
                     break;
                 case 2:
+                    tabs[2].selected = true;
                     DrawGlobalSettings(list, inRect);
                     break;
-                case 3:
+                case 3 when AlienIndex != -1:
+                    tabs[3].selected = true;
                     DrawPatchSettings(inRect);
                     break;
-            }
 
-            if (BarChange)
-            {
-                pawn = null;
-                apparel = null;
-                PawnName = null;
-                HATweakerCache.texture = null;
-                BarChange = false;
-            }
-
-            if (ChangeBar != 1)
-            {
-                InGameSetting = false;
-            }
+            }            
         }
-
-        private GUIContent[] guiB;
-        private GUIStyle guiA;
         private Vector2 BaScrLoc = Vector2.zero;
         private const float unitH = 120f;
         private List<ScrollViewContent> basicSettingUnits = new List<ScrollViewContent>();
+        List<ScrollViewContent> fliterListCache = new List<ScrollViewContent>();
+        private void Reset()
+        {
+            pawn = null;
+            apparel = null;
+            HATweakerCache.texture = null;
+            ReDrawPawnTexture = true;
+            reFliter = true;
+        }
         private void DrawBasicSettings(List<ThingDef> list, Rect inRect)
         {
             if (list.NullOrEmpty())
@@ -174,138 +183,180 @@ namespace HeadApparelTweaker
                 for (int i = 0; i < list.Count; i++)
                 {
                     ThingDef def = list[i];
-                    basicSettingUnits.Add(new BasicSettingUnit(rect0.width, unitH, def.defName, def));
+                    basicSettingUnits.Add(new BasicSettingUnit(rect0.width, unitH, def));
                 }
             }
-            ABWidgetsExtensions.DrawScrollPanel(rect0.ContractedBy(3f), basicSettingUnits, ref BaScrLoc);
+            if (reFliter)
+            {
+                fliterListCache = basicSettingUnits.Where(c => quickSearch.filter.Matches(c.displayName)).ToList();
+            }
+            if (fliterListCache.NullOrEmpty())
+            {
+                quickSearch.noResultsMatched = true;
+            }
+            else
+            {
+                quickSearch.noResultsMatched = false;
+                ABWidgetsExtensions.DrawScrollPanel(rect0.ContractedBy(3f), fliterListCache, ref BaScrLoc);
+            }
+
         }
 
-        private string chooseStyle = "";
-        internal static bool ShowPawnGraphic = false;
 
-        private void DrawAdvanceSettings(List<ThingDef> list, Rect inRect)
+        private void DrawAdvanceSettings(List<ThingDef> origin, Rect inRect)
         {
-            bool adjustStyles = ModsConfig.IdeologyActive;
             float LabelHeigh = 30f;
+            float itemHeight = LabelHeigh + 5f;
             string useDefault = "Use_Default0".Translate();
             string useDefault1 = "Use_Default1".Translate();
+            bool adjustStyles = ModsConfig.IdeologyActive;
             Rect rect0 = inRect.BottomPart(0.95f);
-            InGameSetting = Find.CurrentMap != null && Find.CurrentMap.mapPawns != null && Find.CurrentMap.mapPawns.ColonistsSpawnedCount > 0;
+            if (origin.NullOrEmpty())
+            {
+                return;
+            }
+            if (reFliter)
+            {
+                thingDefCache = origin.Where(c => quickSearch.filter.Matches(c.label)).ToList();
+            }
             Rect outRect = rect0.LeftPart(0.3f);
             Widgets.DrawWindowBackground(outRect);
-            Rect viewRect = new Rect(-3f, -3f, outRect.width - 26f, (LabelHeigh + 5f) * IndexCount + 3f);
-            Rect rect1 = new Rect(LabelHeigh + 5f, 0f, outRect.width - 60f, LabelHeigh);
-            Rect rect2 = new Rect(0f, 0f, LabelHeigh, LabelHeigh);
-            Widgets.BeginScrollView(outRect, ref this.loc, viewRect, true);
             GUIStyle labelStyle = HATweakerUtility.GetLabelStyle(TextAnchor.MiddleCenter);
-            int se = 0;
-            //Draw ScrollView;
-            foreach (ThingDef c in list)
+
+            if (!thingDefCache.NullOrEmpty())
             {
-                if (c.label.IndexOf(search) != -1)
+                Rect viewRect = new Rect(-3f, -3f, outRect.width - 26f, itemHeight * thingDefCache.Count + 3f);
+                Widgets.BeginScrollView(outRect, ref this.loc, viewRect, true);
+
+                // 计算可见范围
+                int startIndex = Mathf.FloorToInt(loc.y / itemHeight);
+                int visibleCount = Mathf.CeilToInt(outRect.height / itemHeight) + 1;
+                int endIndex = Mathf.Min(startIndex + visibleCount, thingDefCache.Count);
+
+                for (int idx = startIndex; idx < endIndex; idx++)
                 {
-                    se++;
+                    ThingDef c = thingDefCache[idx];
+                    float yPos = idx * itemHeight;
+                    Rect rect1 = new Rect(LabelHeigh + 5f, yPos, outRect.width - 60f, LabelHeigh);
+                    Rect rect2 = new Rect(0f, yPos, LabelHeigh, LabelHeigh);
+
                     if (Mouse.IsOver(rect1))
                     {
                         Widgets.DrawHighlight(rect1);
                     }
-                    if (Widgets.RadioButtonLabeled(rect1, c.label, choose == c.defName))
+                    if (Widgets.RadioButtonLabeled(rect1, c.label, choose == c))
                     {
-                        choose = c.defName;
-                        chooseStyle = "";
+                        choose = c;
+                        chooseStyle = null;
                         if (apparel != null && apparel.def == c)
                         {
                             apparel.SetStyleDef(null);
                         }
+                        ReDrawPawnTexture = true;
                     }
                     Widgets.DrawBox(rect2);
                     if (c.uiIcon != null)
                         GUI.DrawTexture(rect2, c.uiIcon);
-                    rect1.y += (LabelHeigh + 5f);
-                    rect2.y += (LabelHeigh + 5f);
                 }
+                Widgets.EndScrollView();
+                quickSearch.noResultsMatched = false;
             }
-            IndexCount = se;
-            Widgets.EndScrollView();
-            //MainSetting
-            ThingDef def = list.FirstOrDefault(x => x.defName == choose);
+            else
+            {
+                quickSearch.noResultsMatched = true;
+            }
+            if (choose == null) return;
+
+            ThingDef def = choose;
             HATweakerSetting.SingleInit(def);
+            HATweakerSetting.HATSettingData data = HATweakerSetting.SettingData[choose.defName];
             Rect main = rect0.RightPart(0.69f);
             Widgets.DrawWindowBackground(main);
-            HATweakerSetting.HATSettingData data = HATweakerSetting.SettingData[choose];
-            Widgets.BeginScrollView(main.LeftHalf(), ref position0, new Rect(0, 0, main.width / 2 - 18f, height0));
-            Rect main1 = new Rect(5f, 5f, main.width / 2 - 28f, LabelHeigh);
+            List<ThingStyleDef> styles = null;
             if (adjustStyles && def.CanBeStyled() && !data.ChildrenData.NullOrEmpty())
             {
-                List<ThingStyleDef> styles = HATweakerUtility.GetStyles(def);
-                if (!styles.NullOrEmpty())
+                styles = HATweakerUtility.GetStyles(def);
+            }
+            Widgets.BeginScrollView(main.LeftHalf(), ref position0, new Rect(0, 0, main.width / 2 - 18f, height0));
+            Rect main1 = new Rect(5f, 5f, main.width / 2 - 28f, LabelHeigh);
+
+            if (!styles.NullOrEmpty())
+            {
+                Widgets.DrawBoxSolid(main1, color);
+                GUI.Label(main1, "Style".Translate(), labelStyle);
+                main1.y += LabelHeigh;
+                bool useD = data.UseDefault;
+                Widgets.CheckboxLabeled(main1, useDefault, ref data.UseDefault);
+                if (useD != data.UseDefault)
                 {
+                    ReDrawPawnTexture = true;
+                }
+                main1.y += LabelHeigh + 10f;
+                Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
 
+                Widgets.DrawHighlightIfMouseover(main1);
+                if (chooseStyle == null)
+                {
+                    Widgets.DrawHighlightSelected(main1);
+                }
+                labelStyle.alignment = TextAnchor.MiddleRight;
+                Rect iconL = new Rect(main1.x, main1.y, main1.height, main1.height);
+                Rect labelR = new Rect(main1.x + main1.height, main1.y, main1.width - main1.height, main1.height);
+                GUI.DrawTexture(iconL, def.uiIcon);
+                GUI.Label(labelR, "Default".Translate(), labelStyle);
+                if (Widgets.ButtonInvisible(main1))
+                {
+                    chooseStyle = null;
+                    apparel.SetStyleDef(null);
+                    ReDrawPawnTexture = true;
+                }
+                main1.y += LabelHeigh;
+                iconL.y += LabelHeigh;
+                labelR.y += LabelHeigh;
 
-                    Widgets.DrawBoxSolid(main1, color);
-                    GUI.Label(main1, "Style".Translate(), labelStyle);
-                    main1.y += LabelHeigh;
-                    Widgets.CheckboxLabeled(main1, useDefault, ref data.UseDefault);
-                    main1.y += LabelHeigh + 10f;
-                    Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
-
+                for (int i = 0; i < styles.Count; i++)
+                {
+                    ThingStyleDef styleDef = styles[i];
                     Widgets.DrawHighlightIfMouseover(main1);
-                    if (chooseStyle.NullOrEmpty())
+                    if (chooseStyle == styleDef)
                     {
                         Widgets.DrawHighlightSelected(main1);
                     }
-                    labelStyle.alignment = TextAnchor.MiddleRight;
-                    Rect iconL = new Rect(main1.x, main1.y, main1.height, main1.height);
-                    Rect labelR = new Rect(main1.x + main1.height, main1.y, main1.width - main1.height, main1.height);
-                    GUI.DrawTexture(iconL, def.uiIcon);
-                    GUI.Label(labelR, "Default".Translate(), labelStyle);
+                    GUI.DrawTexture(iconL, styleDef.UIIcon);
+                    string a = styleDef.label.NullOrEmpty() ? styleDef.defName : styleDef.label;
+                    GUI.Label(labelR, a, labelStyle);
                     if (Widgets.ButtonInvisible(main1))
                     {
-                        chooseStyle = "";
-                        apparel.SetStyleDef(null);
+                        chooseStyle = styleDef;
+                        if (apparel != null && apparel.def == choose)
+                        {
+                            apparel.SetStyleDef(styleDef);
+                        }
+                        ReDrawPawnTexture = true;
                     }
                     main1.y += LabelHeigh;
                     iconL.y += LabelHeigh;
                     labelR.y += LabelHeigh;
-
-                    for (int i = 0; i < styles.Count; i++)
-                    {
-                        ThingStyleDef styleDef = styles[i];
-                        Widgets.DrawHighlightIfMouseover(main1);
-                        if (chooseStyle == styleDef.defName)
-                        {
-                            Widgets.DrawHighlightSelected(main1);
-                        }
-                        GUI.DrawTexture(iconL, styleDef.UIIcon);
-                        string a = styleDef.label.NullOrEmpty() ? styleDef.defName : styleDef.label;
-                        GUI.Label(labelR, a, labelStyle);
-                        if (Widgets.ButtonInvisible(main1))
-                        {
-                            chooseStyle = styleDef.defName;
-                            if (apparel != null && apparel.def.defName == choose)
-                            {
-                                apparel.SetStyleDef(styleDef);
-                            }
-                        }
-                        main1.y += LabelHeigh;
-                        iconL.y += LabelHeigh;
-                        labelR.y += LabelHeigh;
-                    }
-                    if (!chooseStyle.NullOrEmpty() && data.ChildrenData.TryGetValue(chooseStyle, out HATweakerSetting.HATSettingData data1))
-                    {
-                        data = data1;
-                    }
-                    labelStyle.alignment = TextAnchor.MiddleCenter;
-                    main1.y += 10f;
-                    Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
                 }
+                if (chooseStyle != null && data.ChildrenData.TryGetValue(chooseStyle.defName, out HATweakerSetting.HATSettingData data1))
+                {
+                    data = data1;
+                }
+                labelStyle.alignment = TextAnchor.MiddleCenter;
+                main1.y += 10f;
+                Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
             }
             Widgets.DrawBoxSolid(main1, color);
             GUI.Label(main1, "Basic_Settings".Translate(), labelStyle);
             main1.y += LabelHeigh;
-            if (adjustStyles && !chooseStyle.NullOrEmpty())
+            if (adjustStyles && chooseStyle != null)
             {
+                bool useD = data.UseDefault;
                 Widgets.CheckboxLabeled(main1, useDefault1, ref data.UseDefault);
+                if (useD != data.UseDefault)
+                {
+                    ReDrawPawnTexture = true;
+                }
                 main1.y += LabelHeigh + 10f;
                 Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
             }
@@ -318,6 +369,7 @@ namespace HeadApparelTweaker
             if (Widgets.RadioButtonLabeled(main1, "No_Graphic".Translate(), data.NoGraphic))
             {
                 data.NoGraphic = !data.NoGraphic;
+                ReDrawPawnTexture = true;
             }
             if (!data.NoGraphic)
             {
@@ -329,6 +381,7 @@ namespace HeadApparelTweaker
                 if (Widgets.RadioButtonLabeled(main1, "No_Hair".Translate(), data.NoHair))
                 {
                     data.NoHair = !data.NoHair;
+                    ReDrawPawnTexture = true;
                 }
                 main1.y += LabelHeigh;
                 if (Mouse.IsOver(main1))
@@ -338,6 +391,7 @@ namespace HeadApparelTweaker
                 if (Widgets.RadioButtonLabeled(main1, "No_Beard".Translate(), data.NoBeard))
                 {
                     data.NoBeard = !data.NoBeard;
+                    ReDrawPawnTexture = true;
                 }
                 main1.y += LabelHeigh;
                 if (Mouse.IsOver(main1))
@@ -347,15 +401,18 @@ namespace HeadApparelTweaker
                 if (Widgets.RadioButtonLabeled(main1, "Hide_Indoor".Translate(), data.HideInDoor))
                 {
                     data.HideInDoor = !data.HideInDoor;
+                    ReDrawPawnTexture = true;
                 }
                 main1.y += LabelHeigh;
                 if (Mouse.IsOver(main1))
                 {
                     Widgets.DrawHighlight(main1);
+                    ReDrawPawnTexture = true;
                 }
                 if (Widgets.RadioButtonLabeled(main1, "Hide_No_Fight".Translate(), data.HideNoFight))
                 {
                     data.HideNoFight = !data.HideNoFight;
+                    ReDrawPawnTexture = true;
                 }
                 main1.y += LabelHeigh;
                 if (Mouse.IsOver(main1))
@@ -365,6 +422,7 @@ namespace HeadApparelTweaker
                 if (Widgets.RadioButtonLabeled(main1, "Hide_In_Bed".Translate(), data.HideInBed))
                 {
                     data.HideInBed = !data.HideInBed;
+                    ReDrawPawnTexture = true;
                 }
 
                 main1.y += (LabelHeigh + 10f);
@@ -372,7 +430,12 @@ namespace HeadApparelTweaker
                 LabelHeigh += 3f;
                 main1.height += 3f;
                 Widgets.DrawBoxSolid(main1, color);
+                bool adv = data.AdvanceMode;
                 Widgets.CheckboxLabeled(main1, "Advance_Mode".Translate(), ref data.AdvanceMode);
+                if (adv != data.AdvanceMode)
+                {
+                    ReDrawPawnTexture = true;
+                }
                 if (data.AdvanceMode)
                 {
                     main1.y += (main1.height + 2f);
@@ -409,6 +472,7 @@ namespace HeadApparelTweaker
                         data.WestRotation = copyData.WestRotation;
                         data.size = copyData.size;
                         data.LayerOffset = copyData.LayerOffset;
+                        ReDrawPawnTexture = true;
                     }
                     ;
                     Rect rectAdj = new Rect(main1.x, main1.y + main1.height + 3f, main1.width, (main1.height + 10) * 3);
@@ -490,6 +554,7 @@ namespace HeadApparelTweaker
                     if (work)
                     {
                         data.GetDrawData(true);
+                        ReDrawPawnTexture = true;
                     }
                 }
             }
@@ -498,137 +563,122 @@ namespace HeadApparelTweaker
             height0 = main1.y + main1.height + 5f;
             Rect main2 = main.RightHalf();
             Rect main3 = new Rect(main2.x, main2.y, main2.width, main2.height - LabelHeigh - 5f);
+            Rect main4 = new Rect(main2.x, main2.y + main2.height - LabelHeigh, main2.width, LabelHeigh);
+            Rect two = main4;
             Widgets.DrawWindowBackground(main3);
-            if (InGameSetting)
+            List<Pawn> Colonists = new List<Pawn>();
+            if (Current.Game != null && Current.Game.CurrentMap != null && Current.Game.CurrentMap.mapPawns != null)
             {
-                List<Pawn> Colonists = Current.Game.CurrentMap.mapPawns.FreeColonists;
-                if (!Colonists.NullOrEmpty())
+                Colonists = Current.Game.CurrentMap.mapPawns.FreeColonists;
+            }
+            if (!Colonists.NullOrEmpty())
+            {
+                if (pawn == null)
                 {
-                    if (PawnName == null)
-                    {
-                        PawnName = Colonists.FirstOrDefault().Name.ToStringFull;
-                    }
-                    if (pawn == null)
-                    {
-                        pawn = Colonists.FirstOrDefault();
-                    }
-                    if (PawnName != null && Widgets.ButtonText(main3.TopPart(0.05f), PawnName))
+                    pawn = Colonists.FirstOrDefault();
+                }
+                if (pawn != null)
+                {
+                    if (Widgets.ButtonText(main3.TopPart(0.05f), pawn.Name.ToStringFull))
                     {
                         List<FloatMenuOption> Options = new List<FloatMenuOption>();
                         for (int i = 0; i < Colonists.Count; i++)
                         {
                             Pawn pa = Colonists[i];
                             string now = "";
-                            if (pa.Name.ToStringFull == PawnName)
+                            if (pa == pawn)
                             {
                                 now = "(Now)".Translate();
                             }
-                            Options.Add(new FloatMenuOption(pa.Name.ToStringShort + now, () => PawnName = pa.Name.ToStringFull));
+                            Options.Add(new FloatMenuOption(pa.Name.ToStringShort + now, () => pawn = pa));
                         }
                         Find.WindowStack.Add(new FloatMenu(Options));
                     }
-                    if (pawn != null && pawn.Name.ToStringFull != PawnName)
+                    if (choose != null)
                     {
-                        pawn = Colonists.FirstOrDefault(x => x.Name.ToStringFull == PawnName);
-                        if (pawn == null)
+                        if (apparel == null || apparel.def != choose)
                         {
-                            PawnName = null;
-                        }
-                        else
-                        {
-                            PawnName = pawn.Name.ToStringFull;
-                        }
-                    }
-                }
-                else
-                {
-                    PawnName = null;
-                    pawn = null;
-                    HATweakerCache.texture = null;
-                }
-            }
-            if (!choose.NullOrEmpty() && pawn != null && InGameSetting)
-            {
-                if (apparel == null || apparel.def.defName != choose)
-                {
-                    apparel = HATweakerUtility.NewApparel(choose);
-                }
-            }
-            if (pawn != null && InGameSetting)
-            {
-                if (apparel != null)
-                {
-                    try
-                    {
-                        bool changeApparel = FWModIndex != -1 && HarmonyPatchA5.patchFWMod != null;
-                        if (changeApparel)
-                        {
-
-                            HarmonyPatchA5.patchFWMod.AddOrRemoveSettingFWApparel(pawn, apparel, true);
-
-                        }
-                        else if (pawn.apparel != null && pawn.apparel.WornApparel != null)
-                        {
-                            if (pawn.apparel.WornApparel.Count == 0 || !pawn.apparel.WornApparel.Any(ape => ape.def == apparel.def))
+                            apparel = HATweakerUtility.NewApparel(choose);
+                            if (chooseStyle != null)
                             {
-                                pawn.apparel.WornApparel.Add(apparel);
+                                apparel.SetStyleDef(chooseStyle);
                             }
                         }
-                        ShowPawnGraphic = true;
-                        HATweakerUtility.DrawPawnCache(pawn, new Vector2(main2.width, main2.height), direction, out HATweakerCache.texture);
-                        ShowPawnGraphic = false;
-                        if (changeApparel)
+                        if (apparel != null && ReDrawPawnTexture)
                         {
-                            HarmonyPatchA5.patchFWMod.AddOrRemoveSettingFWApparel(pawn, apparel, false);
-
-                        }
-                        else if (pawn.apparel != null && pawn.apparel.WornApparel != null)
-                        {
-                            if (pawn.apparel.WornApparel.Count != 0 && pawn.apparel.WornApparel.Contains(apparel))
+                            try
                             {
-                                pawn.apparel.WornApparel.Remove(apparel);
+                                ShowPawnGraphic = true;
+                                HATweakerUtility.DrawPawnCacheWithApparel(pawn, apparel, new Vector2(main2.width, main2.height), direction, out HATweakerCache.texture);
+                                ShowPawnGraphic = false;
                             }
+                            catch (Exception e)
+                            {
+                                Log.Error(e.Message);
+                            }
+                            finally
+                            {
+                                if (HATweakerCache.texture != null)
+                                {
+                                    ReDrawPawnTexture = false;
+                                }
+                            }
+
                         }
+                        if (HATweakerCache.texture != null)
+                        {
+                            GUI.DrawTexture(main3.BottomPart(0.95f), HATweakerCache.texture);
+                        }
+                        if (Widgets.ButtonText(main4.LeftPart(0.32f), "←—"))
+                        {
+                            if (direction == Rot4.South)
+                            {
+                                direction = Rot4.West;
+                            }
+                            else if (direction == Rot4.West)
+                            {
+                                direction = Rot4.North;
+                            }
+                            else if (direction == Rot4.North)
+                            {
+                                direction = Rot4.East;
+                            }
+                            else
+                            {
+                                direction = Rot4.South;
+                            }
+                            ReDrawPawnTexture = true;
+                        }
+                        if (Widgets.ButtonText(main4.RightPart(0.32f), "—→"))
+                        {
+                            if (direction == Rot4.South)
+                            {
+                                direction = Rot4.East;
+                            }
+                            else if (direction == Rot4.East)
+                            {
+                                direction = Rot4.North;
+                            }
+                            else if (direction == Rot4.North)
+                            {
+                                direction = Rot4.West;
+                            }
+                            else
+                            {
+                                direction = Rot4.South;
+                            }
+                            ReDrawPawnTexture = true;
+                        }
+                        two = main4.RightPart(0.66f).LeftHalf();
                     }
-                    catch (Exception e)
-                    {
-                        Log.Error(e.Message);
-                    }
-
-                }
-
-
-                if (HATweakerCache.texture != null)
-                {
-                    GUI.DrawTexture(main3.BottomPart(0.95f), HATweakerCache.texture);
                 }
             }
             else
             {
+                pawn = null;
+                HATweakerCache.texture = null;
                 GUI.Label(main3, "Into_Game".Translate(), labelStyle);
             }
-            Rect main4 = new Rect(main2.x, main2.y + main2.height - LabelHeigh, main2.width, LabelHeigh);
-            if (Widgets.ButtonText(main4.LeftPart(0.32f), "←—"))
-            {
-                if (direction == Rot4.South)
-                {
-                    direction = Rot4.West;
-                }
-                else if (direction == Rot4.West)
-                {
-                    direction = Rot4.North;
-                }
-                else if (direction == Rot4.North)
-                {
-                    direction = Rot4.East;
-                }
-                else
-                {
-                    direction = Rot4.South;
-                }
-            }
-
-            Rect two = main4.RightPart(0.66f).LeftHalf();
             if (Mouse.IsOver(two))
             {
                 TooltipHandler.TipRegion(two, "Reset_Change_Tooltip".Translate());
@@ -652,91 +702,75 @@ namespace HeadApparelTweaker
                 {
                     HATweakerSetting.SettingData.Remove(def.defName);
                 }
+                ReDrawPawnTexture = true;
+            }
 
-            }
-            if (Widgets.ButtonText(main4.RightPart(0.32f), "—→"))
-            {
-                if (direction == Rot4.South)
-                {
-                    direction = Rot4.East;
-                }
-                else if (direction == Rot4.East)
-                {
-                    direction = Rot4.North;
-                }
-                else if (direction == Rot4.North)
-                {
-                    direction = Rot4.West;
-                }
-                else
-                {
-                    direction = Rot4.South;
-                }
-            }
-            bool DrawAdjust(Rect rectAd, string label, ref float x, ref float y, float min, float max, float interval, Action action)
-            {
-                Rect rectLa = rectAd.TopPart(0.4f);
-                Widgets.Label(rectLa.LeftPart(0.7f), label);
-                bool work = false;
-                if (Widgets.ButtonText(rectLa.RightPart(0.3f).TopHalf(), "Reset".Translate()))
-                {
-                    if (action != null)
-                    {
-                        action();
-                    }
-                    work = true;
-
-                }
-                Rect rectXYL = rectAd.BottomPart(0.6f).TopHalf();
-                Rect minus = new Rect(rectXYL.x, rectXYL.y, rectXYL.height, rectXYL.height);
-                rectXYL.x += rectXYL.height;
-                rectXYL.width -= 2 * rectXYL.height;
-                if (Widgets.ButtonImage(minus, TexButton.Minus))
-                {
-                    x = x > min ? x - interval : min;
-                    work = true;
-                }
-                ;
-                float x0 = Widgets.HorizontalSlider(rectXYL, x, min, max);
-                if (x != x0)
-                {
-                    x = x0;
-                    work = true;
-                }
-                minus.x += (rectXYL.width + rectXYL.x);
-                if (Widgets.ButtonImage(minus, TexButton.Plus))
-                {
-                    x = x < max ? x + interval : max;
-                    work = true;
-                }
-                ;
-                rectXYL.y += rectXYL.height;
-                minus.y += rectXYL.height;
-                minus.x -= (rectXYL.width + rectXYL.x);
-                if (Widgets.ButtonImage(minus, TexButton.Minus))
-                {
-                    y = y > min ? y - interval : min;
-                    work = true;
-                }
-                ;
-                float y0 = Widgets.HorizontalSlider(rectXYL.BottomHalf(), y, min, max);
-                if (y != y0)
-                {
-                    y = y0;
-                    work = true;
-                }
-                minus.x += (rectXYL.width + rectXYL.x);
-                if (Widgets.ButtonImage(minus, TexButton.Plus))
-                {
-                    y = y < max ? y + interval : max;
-                    work = true;
-                }
-                ;
-                Widgets.DrawLineHorizontal(rectAd.x + 5f, rectAd.y + rectAd.height, rectAd.width - 5f, Color.gray);
-                return work;
-            }
         }
-
+        private bool DrawAdjust(Rect rectAd, string label, ref float x, ref float y, float min, float max, float interval, Action action)
+        {
+            Rect rectLa = rectAd.TopPart(0.4f);
+            Widgets.Label(rectLa.LeftPart(0.7f), label);
+            bool work = false;
+            if (Widgets.ButtonText(rectLa.RightPart(0.3f).TopHalf(), "Reset".Translate()))
+            {
+                if (action != null)
+                {
+                    action();
+                }
+                work = true;
+            }
+            Rect rectXYL = rectAd.BottomPart(0.6f).TopHalf();
+            Rect minus = new Rect(rectXYL.x, rectXYL.y, rectXYL.height, rectXYL.height);
+            rectXYL.x += rectXYL.height;
+            rectXYL.width -= 2 * rectXYL.height;
+            if (Widgets.ButtonImage(minus, TexButton.Minus))
+            {
+                x = x > min ? x - interval : min;
+                work = true;
+            }
+                ;
+            float x0 = Widgets.HorizontalSlider(rectXYL, x, min, max);
+            if (x != x0)
+            {
+                x = x0;
+                work = true;
+            }
+            minus.x += (rectXYL.width + rectXYL.x);
+            if (Widgets.ButtonImage(minus, TexButton.Plus))
+            {
+                x = x < max ? x + interval : max;
+                work = true;
+            }
+                ;
+            rectXYL.y += rectXYL.height;
+            minus.y += rectXYL.height;
+            minus.x -= (rectXYL.width + rectXYL.x);
+            if (Widgets.ButtonImage(minus, TexButton.Minus))
+            {
+                y = y > min ? y - interval : min;
+                work = true;
+            }
+                ;
+            float y0 = Widgets.HorizontalSlider(rectXYL.BottomHalf(), y, min, max);
+            if (y != y0)
+            {
+                y = y0;
+                work = true;
+            }
+            minus.x += (rectXYL.width + rectXYL.x);
+            if (Widgets.ButtonImage(minus, TexButton.Plus))
+            {
+                y = y < max ? y + interval : max;
+                work = true;
+            }
+                ;
+            Widgets.DrawLineHorizontal(rectAd.x + 5f, rectAd.y + rectAd.height, rectAd.width - 5f, Color.gray);
+            if (work)
+            {
+                ReDrawPawnTexture = true;
+            }
+            return work;
+        }
         private void DrawGlobalSettings(List<ThingDef> list, Rect inRect)
         {
             Rect rect0 = inRect.BottomPart(0.95f);
@@ -905,41 +939,37 @@ namespace HeadApparelTweaker
             rect00.x += wi / 2;
             Widgets.Label(rect00, "With_Beard".Translate());
             Widgets.DrawLineVertical(rect00.x + rect00.width, rect0.y, LabelHeigh + 5);
-            Rect outRect = new Rect(rect0.x + 5f, rect0.y + LabelHeigh + 10f, rect0.width - 10f, rect0.height - LabelHeigh - 20f);
-            Rect viewRect = new Rect(0, 0, outRect.width - 26f, (LabelHeigh + 5f) * IndexCount + 3f);
-            Rect rect1 = new Rect(0, 0f, viewRect.width / 4, LabelHeigh);
-            Rect iconLoc = new Rect(0, 0, rect1.width*3, LabelHeigh);
-            Widgets.BeginScrollView(outRect, ref this.loc, viewRect, true);
-            int se = 0;
-            //Draw ScrollView;
-
             if (dict.Count != 0)
             {
+                Rect outRect = new Rect(rect0.x + 5f, rect0.y + LabelHeigh + 10f, rect0.width - 10f, rect0.height - LabelHeigh - 20f);
+                Rect viewRect = new Rect(0, 0, outRect.width - 26f, (LabelHeigh + 5f) * dict.Count + 3f);
+                Rect rect1 = new Rect(0, 0f, viewRect.width / 4, LabelHeigh);
+                Rect iconLoc = new Rect(0, 0, rect1.width * 3, LabelHeigh);
+                Widgets.BeginScrollView(outRect, ref this.loc, viewRect, true);
                 foreach (int dictKey in dict.Keys)
                 {
                     string disc = dict[dictKey];
                     if (disc.IndexOf(search) != -1)
                     {
-                        se++;
-                        if (hasTextures && textures.TryGetValue(dictKey, out var tex)&&!tex.NullOrEmpty())
+                        if (hasTextures && textures.TryGetValue(dictKey, out var tex) && !tex.NullOrEmpty())
                         {
                             if (Mouse.IsOver(iconLoc))
                             {
                                 Vector2 v;
                                 int co = tex.Count();
-                                if (co>2)
+                                if (co > 2)
                                 {
                                     v = new Vector2(200, 200);
                                 }
-                                else if(co == 1)
+                                else if (co == 1)
                                 {
-                                    v = new Vector2(100,100);
+                                    v = new Vector2(100, 100);
                                 }
                                 else
                                 {
-                                    v = new Vector2(200,100);
+                                    v = new Vector2(200, 100);
                                 }
-                                ABWidgetsExtensions.DrawTooltipsGrid(tex.ToArray(),v,2);
+                                ABWidgetsExtensions.DrawTooltipsGrid(tex.ToArray(), v, 2);
                             }
                         }
                         string[] strings = disc.Split('|');
@@ -987,7 +1017,6 @@ namespace HeadApparelTweaker
                     }
                 }
             }
-            IndexCount = se;
             Widgets.EndScrollView();
         }
 
@@ -1000,10 +1029,7 @@ namespace HeadApparelTweaker
         {
             pawn = null;
             apparel = null;
-            PawnName = null;
             HATweakerCache.texture = null;
-            BarChange = false;
-            InGameSetting = false;
             ResolveAllApparelGraphics();
             base.WriteSettings();
         }
@@ -1028,6 +1054,7 @@ namespace HeadApparelTweaker
         }
 
     }
+
     internal static class HATSettingContents
     {
         public class BasicSettingUnit : ScrollViewContent
@@ -1039,16 +1066,14 @@ namespace HeadApparelTweaker
             float unitHeight = 30f;
             List<ThingStyleDef> styles;
             bool hasStyles = false;
-            readonly string name;
             static readonly Color color0 = new ColorInt(40, 48, 48).ToColor;
             static readonly Color color1 = new ColorInt(32, 32, 32).ToColor;
             static readonly Color color2 = new ColorInt(16, 16, 16).ToColor;
             static readonly GUIStyle TextMidCenter = ABEasyUtility.GetTextStyle(TextAnchor.MiddleCenter);
             static readonly string pgta = "pgta".Translate();
-            public BasicSettingUnit(float width, float height, string id, ThingDef def) : base(width, height, id)
+            public BasicSettingUnit(float width, float height, ThingDef def) : base(width, height, def.defName, def.label)
             {
                 this.def = def;
-                name = def.label.ToLower();
                 if (!ModsConfig.IdeologyActive)
                 {
                     return;
@@ -1099,18 +1124,6 @@ namespace HeadApparelTweaker
                     }
                 }
 
-            }
-            public override bool CanDisplay()
-            {
-                string a = HATweakerMod.search;
-                if (a.NullOrEmpty())
-                {
-                    return true;
-                }
-                else
-                {
-                    return name.IndexOf(a.ToLower()) != -1;
-                }
             }
             private void DrawBasicDataSettings(ref HATweakerSetting.HATSettingData data, Rect rt, string label = "Default", Texture icon = null, bool disable = false)
             {
@@ -1734,12 +1747,13 @@ namespace HeadApparelTweaker
             }
         }
     }
+
     [StaticConstructorOnStartup]
     public static class HATweakerCache
     {
         public static List<ThingDef> HeadApparel = new List<ThingDef>();
-        public static Dictionary<string, DrawData> drawDataCache = new Dictionary<string, DrawData>();
-        internal static RenderTexture texture = null;
+        internal static Texture texture = null;
+        //public static Dictionary<string, DrawData> drawDataCache = new Dictionary<string, DrawData>();
         public static HATweakerUtility.AlienCompatible alienCompatible = null;
         public static List<string> Layers
         {
@@ -1784,20 +1798,33 @@ namespace HeadApparelTweaker
         }
 
     }
+
     public static class HATweakerUtility
     {
-        internal static void DrawPawnCache(Pawn pawn, Vector2 size, Rot4 direction, out RenderTexture texture)
+        internal static void DrawPawnCacheWithApparel(Pawn pawn, Apparel apparel, Vector2 size, Rot4 direction, out Texture texture)
         {
-            if (pawn != null)
+            if (pawn != null && pawn.apparel != null && pawn.apparel.WornApparel != null)
             {
-                if (pawn.apparel != null)
+                /*IEnumerable<Apparel> aps = null;
+                if (pawn.apparel.WornApparel.Count() != 0)
                 {
-                    pawn.apparel.Notify_ApparelChanged();
-                }
+                    var list = pawn.apparel.WornApparel.Where(a => a.def == apparel.def);
+                    if (list != null && list.Count() != 0)
+                    {
+                        aps = list;
+                    }
+                }*/
+                pawn.apparel.WornApparel.Add(apparel);
+                HarmonyPatchA5.patchFWMod?.AddOrRemoveSettingFWApparel(pawn, apparel, true);
+                pawn.apparel.Notify_ApparelChanged();
                 RenderTexture rt = PortraitsCache.Get(pawn, size, direction);
                 texture = rt;
-                //Log.Warning(texture.depth.ToStringSafe());
+                HarmonyPatchA5.patchFWMod?.AddOrRemoveSettingFWApparel(pawn, apparel, false);
+                pawn.apparel.WornApparel.Remove(apparel);
+                pawn.apparel.Notify_ApparelChanged();
+
                 return;
+
             }
             texture = null;
         }
@@ -1820,9 +1847,8 @@ namespace HeadApparelTweaker
                 alignment = anchor
             };
         }
-        internal static Apparel NewApparel(string defName)
+        internal static Apparel NewApparel(ThingDef def)
         {
-            ThingDef def = DefDatabase<ThingDef>.GetNamedSilentFail(defName);
             if (def == null)
             {
                 return null;
@@ -1867,7 +1893,7 @@ namespace HeadApparelTweaker
                                 List<Texture2D> tex = new List<Texture2D>();
                                 if (texS != null)
                                 {
-                                    tex.Add(texS);  
+                                    tex.Add(texS);
                                 }
                                 if (texN != null)
                                 {
@@ -1911,28 +1937,50 @@ namespace HeadApparelTweaker
             }
         }
     }
+
     public static class HarmonyPatchA5
     {
         public static float rotate = 0;
         static Type This = typeof(HarmonyPatchA5);
         static Type renderTree = typeof(PawnRenderTree);
         static Type renderNodeSetup = typeof(DynamicPawnRenderNodeSetup_Apparel);
+        static FieldInfo nodeSetupNap = null;
+        static FieldInfo nodeSetupNpawn = null;
         internal static PatchFWMod patchFWMod = null;
         internal static void PatchAllByHAT(Harmony harmony)
         {
             List<string> debug = new List<string>();
+            var sub = renderNodeSetup?.GetNestedTypes(BindingFlags.Instance | BindingFlags.NonPublic).Where(a => a.Name.IndexOf("ProcessApparel") != -1 && a.Name.IndexOf("d__5") != -1);
+            MethodInfo processApparelN = null;
+            if (sub != null && sub.Count() != 0)
+            {
+                //Log.Error("test");
+                var t = sub.First();
+                processApparelN = AccessTools.Method(t, "MoveNext");
+                nodeSetupNpawn = AccessTools.Field(t, "pawn");
+                nodeSetupNap = AccessTools.Field(t, "ap");
+            }
             MethodInfo processApparel = AccessTools.Method(renderNodeSetup, "ProcessApparel");
+            bool fin = false;
             if (processApparel != null)
             {
-                harmony.Patch(processApparel, prefix: new HarmonyMethod(This, nameof(PreProcessApparel)), transpiler: new HarmonyMethod(This, nameof(TranProcessApparel)));
-                debug.Add("0");
+                harmony.Patch(processApparel, prefix: new HarmonyMethod(This, nameof(PreProcessApparel)));
+                fin = true;
             }
+            if (processApparelN != null)
+            {
 
+                harmony.Patch(processApparelN, transpiler: new HarmonyMethod(This, nameof(TranProcessApparel)));
+                if (fin)
+                {
+                    debug.Add("0 Patch ProcessApparel");
+                }
+            }
             MethodInfo adjustParms = AccessTools.Method(renderTree, "AdjustParms");
             if (adjustParms != null)
             {
                 harmony.Patch(adjustParms, transpiler: new HarmonyMethod(This, nameof(TranAdjustParms)));
-                debug.Add("1");
+                debug.Add("1 Patch AdjustParms");
             }
 
             //Hide Not Drafted;
@@ -1940,7 +1988,7 @@ namespace HeadApparelTweaker
             if (setDraft != null)
             {
                 harmony.Patch(setDraft, transpiler: new HarmonyMethod(typeof(HarmonyPatchA5), nameof(TranSetDrafted)));
-                debug.Add("2");
+                debug.Add("2 Patch DraftedSetter");
             }
 
             //Hide Under Roof;
@@ -1948,7 +1996,7 @@ namespace HeadApparelTweaker
             if (setPosition != null)
             {
                 harmony.Patch(setPosition, transpiler: new HarmonyMethod(typeof(HarmonyPatchA5), nameof(TranSetPosition)));
-                debug.Add("3");
+                debug.Add("3 Patch PositionSetter");
             }
             if (HATweakerMod.FWModIndex != -1)
             {
@@ -1974,7 +2022,7 @@ namespace HeadApparelTweaker
         {
             if (ApplyGraphicData(pawn))
             {
-                if (HATweakerMod.ShowPawnGraphic && HATweakerMod.pawn == pawn && !HATweakerCache.HeadApparel.NullOrEmpty() && HATweakerCache.HeadApparel.Contains(ap.def) && ap.def != HATweakerMod.apparel.def)
+                if (HATweakerMod.ShowPawnGraphic && HATweakerMod.pawn == pawn && ap != HATweakerMod.apparel)
                 {
                     return false;
                 }
@@ -2122,17 +2170,20 @@ namespace HeadApparelTweaker
         {
             List<CodeInstruction> list = codes.ToList();
             FieldInfo field0 = AccessTools.Field(typeof(PawnRenderNodeProperties), nameof(PawnRenderNodeProperties.drawData));
-            bool notNullField0 = field0 != null;
+            bool notNullField0 = field0 != null && nodeSetupNap != null && nodeSetupNpawn != null;
             for (int i = 0; i < list.Count; i++)
             {
                 CodeInstruction code = list[i];
-                if (i > 10 && i < list.Count - 10 && notNullField0 && list[i - 1].Is(OpCodes.Stfld, field0) && list[i - 2].opcode == OpCodes.Ldloc_2 && code.opcode == OpCodes.Stloc_0 && list[i + 1].opcode == OpCodes.Br)
+                if (i > 10 && i < list.Count - 10 && notNullField0 && list[i - 1].Is(OpCodes.Stfld, field0) && list[i - 2].opcode == OpCodes.Ldloc_S && code.opcode == OpCodes.Stloc_2 && list[i + 1].opcode == OpCodes.Br)
                 {
                     yield return code;
-                    yield return new CodeInstruction(OpCodes.Ldloca, 0);
-                    yield return new CodeInstruction(OpCodes.Ldarg_2);
+                    yield return new CodeInstruction(OpCodes.Ldloca, 2);
                     yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldfld, nodeSetupNpawn);
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldfld, nodeSetupNap);
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(This, nameof(SetHeadClothesProps)));
+                    Log.Message("HATweaker: Transpiler of ProcessApparel finished.");
                 }
                 else
                 {
@@ -2141,7 +2192,7 @@ namespace HeadApparelTweaker
             }
         }
 
-        public static void SetHeadClothesProps(ref PawnRenderNodeProperties prop, Apparel cloth, Pawn pawn)
+        public static void SetHeadClothesProps(ref PawnRenderNodeProperties prop, Pawn pawn, Apparel cloth)
         {
             if (ApplyGraphicData(pawn) && cloth != null && HATweakerSetting.SettingData.TryGetValue(cloth.def.defName, out HATweakerSetting.HATSettingData data0))
             {
@@ -2387,11 +2438,13 @@ namespace HeadApparelTweaker
             }
         }
     }
+
     [DefOf]
     public static class HeadLayerListDefOf
     {
         public static HeadLayerListDef AllHeadLayerList;
     }
+
     public class HeadLayerListDef : Def
     {
         public List<string> HeadLayerList = new List<string>();
