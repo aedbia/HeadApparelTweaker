@@ -950,56 +950,56 @@ namespace HeadApparelTweaker
             one.width /= 3f;
             if (Widgets.ButtonText(one, "Quick_NoGraphic".Translate()))
             {
-                QuickSetting(0, true);
+                QuickSetting(0, true, list);
             }
             one.x += one.width;
             if (Widgets.ButtonText(one, "Quick_HideHair".Translate()))
             {
-                QuickSetting(1, true);
+                QuickSetting(1, true, list);
             }
             one.x += one.width;
             if (Widgets.ButtonText(one, "Quick_DisplayHair".Translate()))
             {
-                QuickSetting(1, false);
+                QuickSetting(1, false, list);
             }
             one.x -= 2f * one.width;
             one.width *= 3f;
             one.y += one.height + 5f;
             if (Widgets.ButtonText(one.LeftHalf(), "Quick_HideBeard".Translate()))
             {
-                QuickSetting(2, true);
+                QuickSetting(2, true, list);
             }
             if (Widgets.ButtonText(one.RightHalf(), "Quick_DisplayBeard".Translate()))
             {
-                QuickSetting(2, false);
+                QuickSetting(2, false, list);
             }
             one.y += one.height + 5f;
             if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideInDoor".Translate()))
             {
-                QuickSetting(3, true);
+                QuickSetting(3, true, list);
             }
 
             if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideInDoor".Translate()))
             {
-                QuickSetting(3, false);
+                QuickSetting(3, false, list);
             }
             one.y += one.height + 5f;
             if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideNoFight".Translate()))
             {
-                QuickSetting(4, true);
+                QuickSetting(4, true, list);
             }
             if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideNoFight".Translate()))
             {
-                QuickSetting(4, false);
+                QuickSetting(4, false,  list);
             }
             one.y += one.height + 5f;
             if (Widgets.ButtonText(one.LeftHalf(), "Quick_Open_HideInBed".Translate()))
             {
-                QuickSetting(5, true);
+                QuickSetting(5, true,  list);
             }
             if (Widgets.ButtonText(one.RightHalf(), "Quick_Close_HideInBed".Translate()))
             {
-                QuickSetting(5, false);
+                QuickSetting(5, false,list);
             }
             one.y += one.height + 5f;
             if (Widgets.ButtonText(one, "Reset_All_Setting".Translate()))
@@ -1009,9 +1009,9 @@ namespace HeadApparelTweaker
             }
             one.y += one.height + 5f;
             Widgets.CheckboxLabeled(one, "Only_Colonist".Translate(), ref HATweakerSetting.WorkOnColonist);
-            one.y += one.height + 5f;
-            Widgets.CheckboxLabeled(one, "useIsColonistCache".Translate(), ref HATweakerSetting.useIsColonistCache);
-            void QuickSetting(int a, bool on)
+            
+        }
+        void QuickSetting(int a, bool on,List<ThingDef> list)
             {
                 for (int i = 0; i < list.Count; i++)
                 {
@@ -1083,7 +1083,6 @@ namespace HeadApparelTweaker
                 }
                 ResolveAllApparelGraphics();
             }
-        }
 
         private void DrawPatchSettings(Rect inRect)
         {
@@ -1228,14 +1227,12 @@ namespace HeadApparelTweaker
     {
         public static Dictionary<string, HATSettingData> SettingData = new Dictionary<string, HATSettingData>();
         public static bool WorkOnColonist = true;
-        public static bool useIsColonistCache = false;
         public static List<string> WithHair = new List<string>();
         public static List<string> WithBeard = new List<string>();
 
         public override void ExposeData()
         {
             Scribe_Values.Look(ref WorkOnColonist, "WorkOnColonist", true);
-            Scribe_Values.Look(ref useIsColonistCache, "useIsColonistCache", false);
             Scribe_Collections.Look(ref WithHair, "WithHair");
             Scribe_Collections.Look(ref WithBeard, "WithBeard");
             List<string> names = SettingData.Keys.ToList();
@@ -2251,15 +2248,11 @@ namespace HeadApparelTweaker
             if (thing is Pawn)
             {
                 Pawn pawn = thing as Pawn;
-                if (ApplyGraphicData(pawn) && pawn.Map != null && pawn.apparel != null && pawn.apparel.AnyApparel)
+                if (pawn.Map != null && pawn.apparel != null &&ApplyGraphicData(pawn)&&ago.InBounds(pawn.Map)&&now.InBounds(pawn.Map))
                 {
-                    if (ago.UsesOutdoorTemperature(pawn.Map) && !now.UsesOutdoorTemperature(pawn.Map))
-                    {
-                        pawn.apparel.Notify_ApparelChanged();
-                    }
-                    else
-
-                        if (!ago.UsesOutdoorTemperature(pawn.Map) && now.UsesOutdoorTemperature(pawn.Map))
+                    bool a = ago.UsesOutdoorTemperature(pawn.Map);
+                    bool b= now.UsesOutdoorTemperature(pawn.Map);
+                    if (a!=b)
                     {
                         pawn.apparel.Notify_ApparelChanged();
                     }
@@ -2292,6 +2285,10 @@ namespace HeadApparelTweaker
 
             private static bool PreCanDrawAddon(Pawn pawn, object __instance, ref bool __result)
             {
+                if (!ApplyGraphicData(pawn))
+                {
+                    return true;
+                }
                 if (__instance is AlienRace.AlienPartGenerator.BodyAddon a)
                 {
                     bool h = false;
