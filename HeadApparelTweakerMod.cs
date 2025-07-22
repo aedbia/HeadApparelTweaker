@@ -2325,12 +2325,12 @@ namespace HeadApparelTweaker
             if (thing is Pawn)
             {
                 Pawn pawn = thing as Pawn;
-                if (ago == now || pawn.apparel == null || !ApplyGraphicData(pawn))
+                if (ago == now || pawn.apparel == null)
                 {
                     return;
                 }
-                Map map = Current.Game?.CurrentMap;
-                if (map == null)
+                Map map = pawn.Map ?? Current.Game?.CurrentMap;
+                if (map == null || !ApplyGraphicData(pawn))
                 {
                     return;
                 }
@@ -2355,17 +2355,21 @@ namespace HeadApparelTweaker
                 {
                     MethodInfo info = AccessTools.TypeByName("AlienRace.AlienPartGenerator+BodyAddon").GetMethods(AccessTools.all).
                         FirstOrDefault(x => x.Name == "CanDrawAddon" && x.GetParameters().Any(a => a.ParameterType == typeof(Pawn)));
+                    string[] logs = new string[2];
                     if (info != null)
                     {
-                        //Log.Warning("aaa");
                         harmony.Patch(info, prefix: new HarmonyMethod(AccessTools.Method(typeof(HarmonyPatchAlienRace), nameof(PreCanDrawAddon))));
+                        logs[0] = "CanDrawAddon";
+
                     }
                     MethodInfo info1 = AccessTools.TypeByName("AlienRace.AlienPartGenerator+BodyAddon").GetMethods(AccessTools.all).
                         FirstOrDefault(x => x.Name == "CanDrawAddonStatic" && x.GetParameters().Any(a => a.ParameterType == typeof(Pawn)));
                     if (info1 != null)
                     {
                         harmony.Patch(info1, prefix: new HarmonyMethod(AccessTools.Method(typeof(HarmonyPatchAlienRace), nameof(PreCanDrawAddon))));
+                        logs[1] = "CanDrawAddonStatic";
                     }
+                    Log.Message($"[HAT] Patch AlienRace: {string.Join(",", logs)}");
                 }
             }
 
@@ -2433,7 +2437,6 @@ namespace HeadApparelTweaker
                 {
                     return true;
                 }
-
             }
 
             private static bool IsHairBodyAddon(int hashCode)
