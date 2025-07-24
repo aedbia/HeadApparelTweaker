@@ -2275,7 +2275,7 @@ namespace HeadApparelTweaker
         }
         public static void UpdateApparelData(Pawn pawn)
         {
-            if (pawn == null && pawn.apparel == null)
+            if (pawn == null || pawn.apparel == null || pawn.apparel.WornApparel == null)
             {
                 return;
             }
@@ -2325,7 +2325,7 @@ namespace HeadApparelTweaker
             if (thing is Pawn)
             {
                 Pawn pawn = thing as Pawn;
-                if (ago == now || pawn.apparel == null)
+                if (ago == now || pawn.apparel == null||pawn.apparel.WornApparel==null)
                 {
                     return;
                 }
