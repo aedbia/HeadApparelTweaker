@@ -764,7 +764,7 @@ namespace HeadApparelTweaker
             one.y += one.height + 5f;
             Widgets.CheckboxLabeled(one, allTranslations.COLCache, ref HATweakerSetting.useIsColonistCache);
             one.y += one.height + 5f;
-            Widgets.Label(one, allTranslations.GLOLayer+":"+HATweakerSetting.BaseLayerOffset.ToString("f4"));
+            Widgets.Label(one, allTranslations.GLOLayer + ":" + HATweakerSetting.BaseLayerOffset.ToString("f4"));
             one.y += one.height + 5f;
             if (ABWidgetsExtensions.HorizontalSlider(one, ref HATweakerSetting.BaseLayerOffset, -0.03f, 0.03f, 0.0001f))
             {
@@ -1608,7 +1608,7 @@ namespace HeadApparelTweaker
                         offset = WestOffset;
                         break;
                 }
-                return new Vector3(offset.x, LayerOffset+BaseLayerOffset, offset.y);
+                return new Vector3(offset.x, LayerOffset + BaseLayerOffset, offset.y);
             }
             public void SetOffset(Rot4 headFace)
             {
@@ -1787,9 +1787,9 @@ namespace HeadApparelTweaker
     {
         internal static void DrawPawnCacheWithApparel(Pawn pawn, Apparel apparel, Vector2 size, Rot4 direction, out Texture texture)
         {
-            if (PawnTextureCache.GetPawnTextureCache(pawn ,out var cache))
+            if (PawnTextureCache.GetPawnTextureCache(pawn, out var cache))
             {
-                cache.GetPawnCacheWithApparel(apparel,size,direction,out texture);
+                cache.GetPawnCacheWithApparel(apparel, size, direction, out texture);
                 return;
 
             }
@@ -1929,6 +1929,7 @@ namespace HeadApparelTweaker
         static Type renderNodeSetup = typeof(DynamicPawnRenderNodeSetup_Apparel);
         static FieldInfo nodeSetupNap = null;
         static FieldInfo nodeSetupNpawn = null;
+        static FieldInfo nodeSetupBNode = null;
         internal static void PatchAllByHAT(Harmony harmony)
         {
             List<string> debug = new List<string>();
@@ -1941,6 +1942,7 @@ namespace HeadApparelTweaker
                 processApparelN = AccessTools.Method(t, "MoveNext");
                 nodeSetupNpawn = AccessTools.Field(t, "pawn");
                 nodeSetupNap = AccessTools.Field(t, "ap");
+                nodeSetupBNode = AccessTools.Field(t, "bodyApparelNode");
             }
             MethodInfo processApparel = AccessTools.Method(renderNodeSetup, "ProcessApparel");
             bool fin = false;
@@ -1980,7 +1982,7 @@ namespace HeadApparelTweaker
                 harmony.Patch(setPosition, transpiler: new HarmonyMethod(typeof(HarmonyPatchA5), nameof(TranSetPosition)));
                 debug.Add("3 Patch PositionSetter");
             }
-            
+
             if (debug.Count < 4)
             {
                 Log.Warning(string.Join(" | ", debug));
@@ -2055,6 +2057,8 @@ namespace HeadApparelTweaker
             FieldInfo info2 = typeof(ApparelProperties).GetField("renderSkipFlags");
             MethodInfo method = AccessTools.PropertyGetter(typeof(Pawn_ApparelTracker), nameof(Pawn_ApparelTracker.WornApparel));
             List<CodeInstruction> list = codes.ToList();
+            List<string> debug = new List<string>();
+            int success = 0;
             for (int i = 0; i < list.Count; i++)
             {
                 CodeInstruction code = list[i];
@@ -2062,6 +2066,9 @@ namespace HeadApparelTweaker
                 {
                     if (i > 6 && code.opcode == OpCodes.Ldfld && code.OperandIs(info2) && list[i - 1].opcode == OpCodes.Ldfld && list[i - 1].OperandIs(info1))
                     {
+                        
+                        debug.Add($"\nAdjustParms - {code.opcode.ToStringSafe()} {code.operand.ToStringSafe()} [{success}]");
+                        success++;
                         yield return code;
                         yield return new CodeInstruction(OpCodes.Ldloc_1);
                         yield return new CodeInstruction(OpCodes.Ldarg_0);
@@ -2070,6 +2077,7 @@ namespace HeadApparelTweaker
                     }
                     else if (code.Is(OpCodes.Callvirt, method))
                     {
+                        debug.Add($"\nAdjustParms - {code.opcode.ToStringSafe()} {code.operand.ToStringSafe()}");
                         yield return code;
                         yield return new CodeInstruction(OpCodes.Ldarg_0);
                         yield return new CodeInstruction(OpCodes.Ldfld, typeof(PawnRenderTree).GetField("pawn"));
@@ -2077,10 +2085,12 @@ namespace HeadApparelTweaker
                     }
                     else if (i == 57)
                     {
+                        debug.Add($"\nAdjustParms - {code.opcode.ToStringSafe()} {code.operand.ToStringSafe()}");
                         yield return new CodeInstruction(OpCodes.Brfalse_S, a);
                     }
                     else if (i == 133)
                     {
+                        debug.Add($"\nAdjustParms - {code.opcode.ToStringSafe()} {code.operand.ToStringSafe()}");
                         code.labels.Add(a);
                         yield return code;
                     }
@@ -2090,6 +2100,11 @@ namespace HeadApparelTweaker
                     }
                 }
             }
+            if (Prefs.DevMode&&debug.Count>0)
+            {
+                Log.Message("[HAT]:Transpiler of AdjustParms finished. Position:"+ string.Join(",",debug));
+            }
+
         }
         private static List<Apparel> GetApparel_1(List<Apparel> origin, Pawn pawn)
         {
@@ -2109,7 +2124,7 @@ namespace HeadApparelTweaker
                     or = origin;
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Log.ErrorOnce(e.ToString(), pawn.GetHashCode());
                 or = origin;
@@ -2183,11 +2198,15 @@ namespace HeadApparelTweaker
         {
             List<CodeInstruction> list = codes.ToList();
             FieldInfo field0 = AccessTools.Field(typeof(PawnRenderNodeProperties), nameof(PawnRenderNodeProperties.drawData));
-            bool notNullField0 = field0 != null && nodeSetupNap != null && nodeSetupNpawn != null;
+            bool notNullField0 = field0 != null && nodeSetupNap != null && nodeSetupNpawn != null && nodeSetupBNode != null;
             for (int i = 0; i < list.Count; i++)
             {
                 CodeInstruction code = list[i];
-                if (i > 10 && i < list.Count - 10 && notNullField0 && list[i - 1].Is(OpCodes.Stfld, field0) && list[i - 2].opcode == OpCodes.Ldloc_S && code.opcode == OpCodes.Stloc_2 && list[i + 1].opcode == OpCodes.Br)
+                /*if (i< list.Count - 10 && code.opcode == OpCodes.Stloc_S&& code.operand.ToStringSafe() == "Verse.PawnRenderNodeProperties (8)" && list[i+4].opcode == OpCodes.Callvirt&& list[i + 4].OperandIs(AccessTools.Method(renderTree, nameof(PawnRenderTree.ShouldAddNodeToTree))))
+                {
+                    yield return code;
+                }else*/
+                if (i > 10 && i < list.Count - 10 && notNullField0 && code.opcode == OpCodes.Stloc_2 && list[i + 1].opcode == OpCodes.Br & list[i + 2].opcode == OpCodes.Ldarg_0 && list[i + 3].Is(OpCodes.Ldfld, nodeSetupBNode) && list[i + 4].opcode == OpCodes.Brfalse)
                 {
                     yield return code;
                     yield return new CodeInstruction(OpCodes.Ldloca, 2);
@@ -2196,7 +2215,10 @@ namespace HeadApparelTweaker
                     yield return new CodeInstruction(OpCodes.Ldarg_0);
                     yield return new CodeInstruction(OpCodes.Ldfld, nodeSetupNap);
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(This, nameof(SetHeadClothesProps)));
-                    //Log.Message("HATweaker: Transpiler of ProcessApparel finished.");
+                    if (Prefs.DevMode)
+                    {
+                        Log.Message("[HAT]: Transpiler of ProcessApparel finished.");
+                    }
                 }
                 else
                 {
@@ -2302,8 +2324,6 @@ namespace HeadApparelTweaker
             }
         }
 
-
-
         public static void IsPositionChange(Thing thing, IntVec3 ago, IntVec3 now)
         {
             if (thing == null)
@@ -2357,7 +2377,10 @@ namespace HeadApparelTweaker
                         harmony.Patch(info1, prefix: new HarmonyMethod(AccessTools.Method(typeof(HarmonyPatchAlienRace), nameof(PreCanDrawAddon))));
                         logs[1] = "CanDrawAddonStatic";
                     }
-                    Log.Message($"[HAT] Patch AlienRace: {string.Join(",", logs)}");
+                    if (Prefs.DevMode)
+                    {
+                        Log.Message($"[HAT]: Patch AlienRace {string.Join(",", logs)}");
+                    }
                 }
             }
 
@@ -2447,7 +2470,7 @@ namespace HeadApparelTweaker
                 return false;
             }
         }
-        
+
     }
 
     [DefOf]
