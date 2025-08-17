@@ -999,7 +999,7 @@ namespace HeadApparelTweaker
 
     public class BasicSettingUnit : ScrollViewContent
     {
-        private float height = 135f;
+        private float height = 100;
         public override float Height => height;
 
         ThingDef def;
@@ -1007,7 +1007,7 @@ namespace HeadApparelTweaker
         List<ThingStyleDef> styles;
         bool hasStyles = false;
         bool isHeadApparel = true;
-        int baseUnitCount = 3;
+        private int baseUnitCount = 3;
         static readonly Color color0 = new ColorInt(40, 48, 48).ToColor;
         static readonly Color color1 = new ColorInt(32, 32, 32).ToColor;
         static readonly Color color2 = new ColorInt(16, 16, 16).ToColor;
@@ -1024,15 +1024,15 @@ namespace HeadApparelTweaker
             {
                 baseUnitCount = 4;
             }
-            height = (unitHeight + 5) * baseUnitCount - 5f;
+            this.height = unitHeight * baseUnitCount + 15f;
             if (def.CanBeStyled() && !def.RelevantStyleCategories.NullOrEmpty())
             {
                 this.styles = HATweakerUtility.GetStyles(def);
             }
-            if (ModsConfig.IdeologyActive && !styles.NullOrEmpty())
+            if (!styles.NullOrEmpty())
             {
                 this.hasStyles = true;
-                this.height = (unitHeight * baseUnitCount + 3f) * (styles.Count + 1) + 7f;
+                this.height = (unitHeight * baseUnitCount + 3f) * (styles.Count + 1) + 12f;
             }
 
             isHeadApparel = HATweakerUtility.IsHeadApparel(def);
@@ -1047,7 +1047,7 @@ namespace HeadApparelTweaker
             Rect rect = inRect.ContractedBy(5f);
             HATweakerSetting.SingleInit(def);
             float of = rect.width * 0.1f;
-            Rect cr = new Rect(rect.x + of, rect.y, rect.width - of, 4 * unitHeight);
+            Rect cr = new Rect(rect.x + of, rect.y, rect.width - of, baseUnitCount * unitHeight);
             Rect tr = new Rect(rect.x, rect.y, of, rect.height);
             Widgets.DrawBoxSolid(tr, color2);
             GUI.Label(tr, def.label, TextMidCenter);
@@ -1153,13 +1153,17 @@ namespace HeadApparelTweaker
                     {
                         data.HideInBed = !data.HideInBed;
                     }
-                    optionRect.x = rt.x + 10f;
-                    optionRect.y += optionRect.height;
-                    Widgets.DrawHighlightIfMouseover(optionRect);
-                    if (Widgets.RadioButtonLabeled(optionRect, tran.hideNonVacuum, data.HideNonVacuum, disable))
+                    if (od)
                     {
-                        data.HideNonVacuum = !data.HideNonVacuum;
+                        optionRect.x = rt.x + 10f;
+                        optionRect.y += optionRect.height;
+                        Widgets.DrawHighlightIfMouseover(optionRect);
+                        if (Widgets.RadioButtonLabeled(optionRect, tran.hideNonVacuum, data.HideNonVacuum, disable))
+                        {
+                            data.HideNonVacuum = !data.HideNonVacuum;
+                        }
                     }
+
                 }
             }
         }
