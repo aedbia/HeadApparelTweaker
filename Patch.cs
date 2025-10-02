@@ -10,10 +10,10 @@ using Verse;
 
 namespace HeadApparelTweaker
 {
-    public static class HarmonyPatchHAT
+    public static class HarmonyPatchA5
     {
         public static float rotate = 0;
-        static Type This = typeof(HarmonyPatchHAT);
+        static Type This = typeof(HarmonyPatchA5);
         static Type renderTree = typeof(PawnRenderTree);
         static Type renderNodeSetup = typeof(DynamicPawnRenderNodeSetup_Apparel);
         static FieldInfo nodeSetupNap = null;
@@ -49,96 +49,43 @@ namespace HeadApparelTweaker
                     debug.Add("0 Patch ProcessApparel");
                 }
             }
+
+            MethodInfo hv = AccessTools.Method(typeof(PawnRenderNodeWorker_Apparel_Head), nameof(PawnRenderNodeWorker_Apparel_Head.CanDrawNow));
+            if (hv != null)
+            {
+                harmony.Patch(hv, transpiler: new HarmonyMethod(This, nameof(TranCanDrawNow)));
+                debug.Add("1 Patch Apparel_Head.CanDrawNow");
+            }
+
             MethodInfo adjustParms = AccessTools.Method(renderTree, "AdjustParms");
             if (adjustParms != null)
             {
                 harmony.Patch(adjustParms, transpiler: new HarmonyMethod(This, nameof(TranAdjustParms)));
-                debug.Add("1 Patch AdjustParms");
+                debug.Add("2 Patch AdjustParms");
             }
 
             //Hide Not Drafted;
             MethodInfo setDraft = AccessTools.PropertySetter(typeof(Pawn_DraftController), nameof(Pawn_DraftController.Drafted));
             if (setDraft != null)
             {
-                harmony.Patch(setDraft, transpiler: new HarmonyMethod(typeof(HarmonyPatchHAT), nameof(TranSetDrafted)));
-                debug.Add("2 Patch DraftedSetter");
+                harmony.Patch(setDraft, transpiler: new HarmonyMethod(typeof(HarmonyPatchA5), nameof(TranSetDrafted)));
+                debug.Add("3 Patch DraftedSetter");
             }
 
             //Hide Under Roof;
             MethodInfo setPosition = AccessTools.PropertySetter(typeof(Thing), nameof(Thing.Position));
             if (setPosition != null)
             {
-                harmony.Patch(setPosition, transpiler: new HarmonyMethod(typeof(HarmonyPatchHAT), nameof(TranSetPosition)));
-                debug.Add("3 Patch PositionSetter");
+                harmony.Patch(setPosition, transpiler: new HarmonyMethod(typeof(HarmonyPatchA5), nameof(TranSetPosition)));
+                debug.Add("5 Patch PositionSetter");
             }
 
-            if (debug.Count < 4)
+            if (debug.Count < 5)
             {
                 Log.Warning(string.Join(" | ", debug));
             }
         }
 
-        public static bool PreProcessApparel(Pawn pawn, PawnRenderTree tree, Apparel ap, PawnRenderNode headApparelNode, PawnRenderNode bodyApparelNode, Dictionary<PawnRenderNode, int> layerOffsets, ref IEnumerable<ValueTuple<PawnRenderNode, PawnRenderNode>> __result)
-        {
-            bool a = CanDrawApparel(pawn, ap);
-            if (!a)
-            {
-                __result = new List<ValueTuple<PawnRenderNode, PawnRenderNode>>();
-            }
-            return a;
-        }
-
-        public static bool CanDrawApparel(Pawn pawn, Apparel ap)
-        {
-            if (ApplyGraphicData(pawn))
-            {
-                bool dis = false;
-                if (SettingsWindowContents.ShowPawnGraphic && SettingsWindowContents.pawn == pawn)
-                {
-                    if (SettingsWindowContents.showBodyApparel)
-                    {
-                        dis = ap == SettingsWindowContents.apparel || (HATweakerCache.HeadApparel.NullOrEmpty() || !HATweakerCache.HeadApparel.Contains(ap.def));
-                    }
-                    else
-                    {
-                        dis = ap == SettingsWindowContents.apparel;
-                    }
-                }
-                else
-                {
-                    dis = true;
-                }
-                if (dis)
-                {
-                    return CanDisplay(ap, pawn);
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-        private static bool ApplyGraphicData(Pawn pawn)
-        {
-            if (pawn != null && (!HATweakerSetting.WorkOnColonist || HATweakerCache.IsColonist(pawn)))
-            {
-                return true;
-            }
-            return false;
-        }
-        private static bool CanDisplay(Apparel ap, Pawn pawn)
-        {
-            if (HATweakerSetting.SettingData.TryGetValue(ap.def.defName, out HATweakerSetting.HATSettingData data))
-            {
-                if (ModsConfig.IdeologyActive && !data.UseDefault && !data.ChildrenData.NullOrEmpty() && ap.StyleDef != null && data.ChildrenData.TryGetValue(ap.StyleDef.defName, out HATweakerSetting.HATSettingData data1) && !data1.UseDefault)
-                {
-                    return data1.CanDraw(pawn);
-                }
-                return data.CanDraw(pawn);
-            }
-            return true;
-        }
         public static IEnumerable<CodeInstruction> TranAdjustParms(IEnumerable<CodeInstruction> codes, ILGenerator generator)
         {
             Label a = generator.DefineLabel();
@@ -195,6 +142,168 @@ namespace HeadApparelTweaker
             }
 
         }
+        public static IEnumerable<CodeInstruction> TranProcessApparel(IEnumerable<CodeInstruction> codes)
+        {
+            List<CodeInstruction> list = codes.ToList();
+            FieldInfo field0 = AccessTools.Field(typeof(PawnRenderNodeProperties), nameof(PawnRenderNodeProperties.drawData));
+            bool notNullField0 = field0 != null && nodeSetupNap != null && nodeSetupNpawn != null && nodeSetupBNode != null;
+            for (int i = 0; i < list.Count; i++)
+            {
+                CodeInstruction code = list[i];
+                /*if (i< list.Count - 10 && code.opcode == OpCodes.Stloc_S&& code.operand.ToStringSafe() == "Verse.PawnRenderNodeProperties (8)" && list[i+4].opcode == OpCodes.Callvirt&& list[i + 4].OperandIs(AccessTools.Method(renderTree, nameof(PawnRenderTree.ShouldAddNodeToTree))))
+                {
+                    yield return code;
+                }else*/
+                if (i > 10 && i < list.Count - 10 && notNullField0 && code.opcode == OpCodes.Stloc_2 && list[i + 1].opcode == OpCodes.Br & list[i + 2].opcode == OpCodes.Ldarg_0 && list[i + 3].Is(OpCodes.Ldfld, nodeSetupBNode) && list[i + 4].opcode == OpCodes.Brfalse)
+                {
+                    yield return code;
+                    yield return new CodeInstruction(OpCodes.Ldloca, 2);
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldfld, nodeSetupNpawn);
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldfld, nodeSetupNap);
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(This, nameof(SetHeadApparelProps)));
+                    if (Prefs.DevMode)
+                    {
+                        Log.Message("[HAT]: Transpiler of ProcessApparel finished.");
+                    }
+                }
+                else
+                {
+                    yield return code;
+                }
+            }
+        }
+
+        public static IEnumerable<CodeInstruction> TranSetDrafted(IEnumerable<CodeInstruction> codes)
+        {
+            MethodInfo aaa = AccessTools.Method(typeof(PriorityWork), nameof(PriorityWork.ClearPrioritizedWorkAndJobQueue));
+            List<CodeInstruction> list = codes.ToList();
+            bool patch = true;
+            for (int i = 0; i < list.Count; i++)
+            {
+                CodeInstruction code = list[i];
+                if (code.opcode == OpCodes.Callvirt && code.OperandIs(aaa))
+                {
+                    yield return code;
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Pawn_DraftController), "pawn"));
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(This, nameof(UpdateApparelData)));
+                    patch = false;
+                }
+                else
+                {
+                    yield return code;
+                }
+            }
+            if (patch)
+            {
+                Log.Warning("TranSetDrafted(2)-Fail");
+            }
+        }
+
+        public static IEnumerable<CodeInstruction> TranSetPosition(IEnumerable<CodeInstruction> codes)
+        {
+            List<CodeInstruction> list = codes.ToList();
+            bool patch = true;
+            for (int i = 0; i < list.Count; i++)
+            {
+                CodeInstruction code = list[i];
+                if (i < list.Count - 5 && code.opcode == OpCodes.Ldarg_0 && list[i + 1].opcode == OpCodes.Ldarg_1
+                    && list[i + 2].opcode == OpCodes.Stfld && list[i + 3].opcode == OpCodes.Ldarg_0 && list[i + 4].opcode == OpCodes.Call)
+                {
+                    yield return code;
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Thing), "positionInt"));
+                    yield return new CodeInstruction(OpCodes.Ldarg_1);
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchA5), nameof(IsPositionChange)));
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    patch = false;
+                }
+                else
+                {
+                    yield return code;
+                }
+            }
+            if (patch)
+            {
+                Log.Warning("TranSetPosition(3)-Fail");
+            }
+        }
+
+        public static IEnumerable<CodeInstruction> TranCanDrawNow(IEnumerable<CodeInstruction> codes, ILGenerator generator)
+        {
+            CodeMatcher codeMatcher = new CodeMatcher(codes, generator);
+            codeMatcher
+                .MatchStartForward(CodeMatch.Calls(typeof(PawnRenderNodeWorker_Apparel_Head).Method(nameof(PawnRenderNodeWorker_Apparel_Head.HeadgearVisible))))
+                .ThrowIfInvalid("Invalid")
+                .RemoveInstruction()
+                //.Advance()
+                .Insert(new CodeInstruction[]
+                {
+                    new CodeInstruction(OpCodes.Ldarg_1),
+                    new CodeInstruction(OpCodes.Call,This.Method(nameof(CanDrawInBed)))
+                });
+            //Log.Warning(codeMatcher.Instruction.ToStringSafe());
+            return codeMatcher.Instructions();
+        }
+        public static bool CanDrawInBed(PawnDrawParms parms, PawnRenderNode n)
+        {
+            if (parms.pawn == null || n.apparel == null) return false;
+            if (parms.bed == null) return true;
+
+            return HATweakerSetting.TryGetApparelDataWithPawn(parms.pawn, n.apparel, out var data)
+                && data.CanDrawInBedOrNotInBed(parms.pawn);
+        }
+
+        public static bool PreProcessApparel(Pawn pawn, PawnRenderTree tree, Apparel ap, PawnRenderNode headApparelNode, PawnRenderNode bodyApparelNode, Dictionary<PawnRenderNode, int> layerOffsets, ref IEnumerable<ValueTuple<PawnRenderNode, PawnRenderNode>> __result)
+        {
+            bool canDraw = CanDrawApparel(pawn, ap);
+            if (!canDraw)
+            {
+                __result = new List<ValueTuple<PawnRenderNode, PawnRenderNode>>();
+            }
+            return canDraw;
+        }
+        public static bool CanDrawApparel(Pawn pawn, Apparel ap)
+        {
+            if (ApplyGraphicData(pawn))
+            {
+                bool dis = false;
+                if (SettingsWindowContents.ShowPawnGraphic && SettingsWindowContents.pawn == pawn)
+                {
+                    if (SettingsWindowContents.showBodyApparel)
+                    {
+                        dis = ap == SettingsWindowContents.apparel || (HATweakerCache.HeadApparel.NullOrEmpty() || !HATweakerCache.HeadApparel.Contains(ap.def));
+                    }
+                    else
+                    {
+                        dis = ap == SettingsWindowContents.apparel;
+                    }
+                }
+                else
+                {
+                    dis = true;
+                }
+                if (dis)
+                {
+                    return CanDisplay(ap, pawn, false);
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        private static bool ApplyGraphicData(Pawn pawn)
+        {
+            if (pawn != null && (!HATweakerSetting.WorkOnColonist || HATweakerCache.IsColonist(pawn)))
+            {
+                return true;
+            }
+            return false;
+        }
         private static List<Apparel> GetApparel_1(List<Apparel> origin, Pawn pawn)
         {
             if (pawn == null)
@@ -219,7 +328,7 @@ namespace HeadApparelTweaker
                 or = origin;
             }
             List<Apparel> a = or == null ? new List<Apparel>() : new List<Apparel>(or);
-            a.RemoveAll(b => !CanDisplay(b, pawn));
+            a.RemoveAll(b => !CanDisplay(b, pawn, true));
             return a;
         }
 
@@ -283,178 +392,81 @@ namespace HeadApparelTweaker
             }
         }
 
-        public static IEnumerable<CodeInstruction> TranProcessApparel(IEnumerable<CodeInstruction> codes)
+        private static bool CanDisplay(Apparel ap, Pawn pawn, bool withBed)
         {
-            List<CodeInstruction> list = codes.ToList();
-            FieldInfo field0 = AccessTools.Field(typeof(PawnRenderNodeProperties), nameof(PawnRenderNodeProperties.drawData));
-            bool notNullField0 = field0 != null && nodeSetupNap != null && nodeSetupNpawn != null && nodeSetupBNode != null;
-            for (int i = 0; i < list.Count; i++)
+            if (HATweakerSetting.TryGetApparelDataWithPawn(pawn, ap, out HATweakerSetting.HATSettingData data))
             {
-                CodeInstruction code = list[i];
-                /*if (i< list.Count - 10 && code.opcode == OpCodes.Stloc_S&& code.operand.ToStringSafe() == "Verse.PawnRenderNodeProperties (8)" && list[i+4].opcode == OpCodes.Callvirt&& list[i + 4].OperandIs(AccessTools.Method(renderTree, nameof(PawnRenderTree.ShouldAddNodeToTree))))
+                if (withBed)
                 {
-                    yield return code;
-                }else*/
-                if (i > 10 && i < list.Count - 10 && notNullField0 && code.opcode == OpCodes.Stloc_2 && list[i + 1].opcode == OpCodes.Br & list[i + 2].opcode == OpCodes.Ldarg_0 && list[i + 3].Is(OpCodes.Ldfld, nodeSetupBNode) && list[i + 4].opcode == OpCodes.Brfalse)
-                {
-                    yield return code;
-                    yield return new CodeInstruction(OpCodes.Ldloca, 2);
-                    yield return new CodeInstruction(OpCodes.Ldarg_0);
-                    yield return new CodeInstruction(OpCodes.Ldfld, nodeSetupNpawn);
-                    yield return new CodeInstruction(OpCodes.Ldarg_0);
-                    yield return new CodeInstruction(OpCodes.Ldfld, nodeSetupNap);
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(This, nameof(SetHeadClothesProps)));
-                    if (Prefs.DevMode)
-                    {
-                        Log.Message("[HAT]: Transpiler of ProcessApparel finished.");
-                    }
+                    return data.CanDrawInBedOrNotInBed(pawn) && data.CanDraw(pawn);
                 }
                 else
                 {
-                    yield return code;
+                    return data.CanDraw(pawn);
                 }
+
+            }
+            return true;
+        }
+
+        public static void SetHeadApparelProps(ref PawnRenderNodeProperties prop, Pawn pawn, Apparel apparel)
+        {
+            if (!ApplyGraphicData(pawn)
+                || apparel == null
+                || !HATweakerSetting.TryGetApparelDataWithPawn(pawn, apparel, out var data))
+                return;
+
+            if (data.AdvanceMode)
+            {
+                var d = data.GetDrawData();
+                if (d != null)
+                {
+                    prop.drawData = d;
+                }
+                prop.drawSize.x *= data.size.x;
+                prop.drawSize.y *= data.size.y;
             }
         }
 
-        public static void SetHeadClothesProps(ref PawnRenderNodeProperties prop, Pawn pawn, Apparel cloth)
-        {
-            if (ApplyGraphicData(pawn) && cloth != null && HATweakerSetting.SettingData.TryGetValue(cloth.def.defName, out HATweakerSetting.HATSettingData data0))
-            {
-                HATweakerSetting.HATSettingData data;
-                if (ModsConfig.IdeologyActive && !data0.UseDefault
-                    && !data0.ChildrenData.NullOrEmpty()
-                    && cloth.StyleDef != null
-                    && data0.ChildrenData.TryGetValue(cloth.StyleDef.defName, out HATweakerSetting.HATSettingData data1)
-                    && !data1.UseDefault)
-                {
-                    data = data1;
-                }
-                else
-                {
-                    data = data0;
-                }
-                if (data.AdvanceMode)
-                {
-                    var d = data.GetDrawData();
-                    if (d != null)
-                    {
-                        prop.drawData = d;
-                    }
-                    prop.drawSize.x *= data.size.x;
-                    prop.drawSize.y *= data.size.y;
-
-                }
-            }
-        }
-        public static IEnumerable<CodeInstruction> TranSetDrafted(IEnumerable<CodeInstruction> codes)
-        {
-            MethodInfo aaa = AccessTools.Method(typeof(PriorityWork), nameof(PriorityWork.ClearPrioritizedWorkAndJobQueue));
-            List<CodeInstruction> list = codes.ToList();
-            bool patch = true;
-            for (int i = 0; i < list.Count; i++)
-            {
-                CodeInstruction code = list[i];
-                if (code.opcode == OpCodes.Callvirt && code.OperandIs(aaa))
-                {
-                    yield return code;
-                    yield return new CodeInstruction(OpCodes.Ldarg_0);
-                    yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Pawn_DraftController), "pawn"));
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(This, nameof(UpdateApparelData)));
-                    patch = false;
-                }
-                else
-                {
-                    yield return code;
-                }
-            }
-            if (patch)
-            {
-                Log.Warning("TranSetDrafted(2)-Fail");
-            }
-        }
         public static void UpdateApparelData(Pawn pawn)
         {
-            if (pawn == null || pawn.apparel == null || pawn.apparel.WornApparel == null)
-            {
-                return;
-            }
+            if (pawn?.apparel?.WornApparel == null) return;
+
             if (ApplyGraphicData(pawn))
             {
                 pawn.apparel.Notify_ApparelChanged();
             }
         }
 
-        public static IEnumerable<CodeInstruction> TranSetPosition(IEnumerable<CodeInstruction> codes)
-        {
-            List<CodeInstruction> list = codes.ToList();
-            bool patch = true;
-            for (int i = 0; i < list.Count; i++)
-            {
-                CodeInstruction code = list[i];
-                if (i < list.Count - 5 && code.opcode == OpCodes.Ldarg_0 && list[i + 1].opcode == OpCodes.Ldarg_1
-                    && list[i + 2].opcode == OpCodes.Stfld && list[i + 3].opcode == OpCodes.Ldarg_0 && list[i + 4].opcode == OpCodes.Call)
-                {
-                    yield return code;
-                    yield return new CodeInstruction(OpCodes.Ldarg_0);
-                    yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Thing), "positionInt"));
-                    yield return new CodeInstruction(OpCodes.Ldarg_1);
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyPatchHAT), nameof(IsPositionChange)));
-                    yield return new CodeInstruction(OpCodes.Ldarg_0);
-                    patch = false;
-                }
-                else
-                {
-                    yield return code;
-                }
-            }
-            if (patch)
-            {
-                Log.Warning("TranSetPosition(3)-Fail");
-            }
-        }
-
         public static void IsPositionChange(Thing thing, IntVec3 ago, IntVec3 now)
         {
-            if (thing == null)
+            if (!(thing is Pawn pawn) || ago == now || pawn.apparel?.WornApparel == null) return;
+
+            Map map = pawn.MapHeld;
+            if (map == null || !ApplyGraphicData(pawn))
+                return;
+
+            if (!ago.InBounds(map) || !now.InBounds(map)) return;
+
+            bool a = ago.UsesOutdoorTemperature(map);
+            bool b = now.UsesOutdoorTemperature(map);
+
+            if (a != b)
             {
+                pawn.apparel.Notify_ApparelChanged();
                 return;
             }
-            if (thing is Pawn)
-            {
-                Pawn pawn = thing as Pawn;
-                if (ago == now || pawn.apparel == null || pawn.apparel.WornApparel == null)
-                {
-                    return;
-                }
-                Map map = pawn.MapHeld;
-                if (map == null || !ApplyGraphicData(pawn))
-                {
-                    //Log.Warning("HAT: Pawn " + pawn.Name.ToStringShort + " has no graphic data.");
-                    return;
-                }
-                if (ago.InBounds(map) && now.InBounds(map))
-                {
-                    bool a = ago.UsesOutdoorTemperature(map);
-                    bool b = now.UsesOutdoorTemperature(map);
-                    bool work = ModsConfig.OdysseyActive;
-                    if (a != b)
-                    {
-                        work = false;
-                        pawn.apparel.Notify_ApparelChanged();
-                    }
-                    if (work)
-                    {
-                        bool a0 = ago.GetVacuum(map) == 0;
-                        bool b0 = now.GetVacuum(map) == 0;
-                        if (a0 != b0)
-                        {
-                            pawn.apparel.Notify_ApparelChanged();
-                        }
-                    }
 
-                }
+            if (!ModsConfig.OdysseyActive) return;
+
+            bool a0 = ago.GetVacuum(map) == 0;
+            bool b0 = now.GetVacuum(map) == 0;
+            if (a0 != b0)
+            {
+                pawn.apparel.Notify_ApparelChanged();
             }
         }
+
 
         public class HarmonyPatchAlienRace
         {

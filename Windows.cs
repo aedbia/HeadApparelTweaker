@@ -36,6 +36,7 @@ namespace HeadApparelTweaker
         private static List<ScrollViewContent> basicSettingUnits = new List<ScrollViewContent>();
         private static List<ScrollViewContent> fliterListCache = new List<ScrollViewContent>();
         private static List<TabRecord> tabs = new List<TabRecord>();
+        private static bool drawScrollBar = false;
         private static void NotifyReFliter()
         {
             reFliter = true;
@@ -63,6 +64,10 @@ namespace HeadApparelTweaker
         }
         public static void DoSettingsWindowContents(Rect inRect)
         {
+            if (!HATweakerCache.Initialized)
+            {
+                return;
+            }
             if (allTranslations == null)
             {
                 allTranslations = new TranslationOfHATSetting();
@@ -236,10 +241,12 @@ namespace HeadApparelTweaker
             List<ThingStyleDef> styles = null;
             if (ModsConfig.IdeologyActive && adjustStyles && def.CanBeStyled() && !data.ChildrenData.NullOrEmpty())
             {
-                styles = HATweakerUtility.GetStyles(def);
+                styles = HATweakerUtility.GetThingStyleDefs(def);
             }
-            Widgets.BeginScrollView(main.LeftHalf(), ref position0, new Rect(0, 0, main.width / 2 - 18f, height0));
-            Rect main1 = new Rect(5f, 5f, main.width / 2 - 28f, LabelHeigh);
+            Rect outRect0 = main.LeftHalf();
+            float uw = outRect0.width - (drawScrollBar ? 17f : 0f);
+            Widgets.BeginScrollView(outRect0, ref position0, new Rect(0, 0, uw, height0));
+            Rect main1 = new Rect(5f, 5f, uw - 10f, LabelHeigh);
             if (!styles.NullOrEmpty())
             {
                 Widgets.DrawBoxSolid(main1, color);
@@ -322,21 +329,15 @@ namespace HeadApparelTweaker
             }
             LabelHeigh -= 3f;
             main1.height -= 3f;
-            if (isHeadApparel)
+            Widgets.DrawHighlightIfMouseover(main1);
+            if (Widgets.RadioButtonLabeled(main1, allTranslations.noGraphic, data.NoGraphic))
             {
-                Widgets.DrawHighlightIfMouseover(main1);
-                if (Widgets.RadioButtonLabeled(main1, allTranslations.noGraphic, data.NoGraphic))
-                {
-                    data.NoGraphic = !data.NoGraphic;
-                    ReDrawPawnTexture = true;
-                }
+                data.NoGraphic = !data.NoGraphic;
+                ReDrawPawnTexture = true;
             }
             if (!data.NoGraphic)
             {
-                if (isHeadApparel)
-                {
-                    main1.y += LabelHeigh;
-                }
+                main1.y += LabelHeigh;
                 Widgets.DrawHighlightIfMouseover(main1);
                 if (Widgets.RadioButtonLabeled(main1, allTranslations.noHair, data.NoHair))
                 {
@@ -350,50 +351,51 @@ namespace HeadApparelTweaker
                     data.NoBeard = !data.NoBeard;
                     ReDrawPawnTexture = true;
                 }
+                main1.y += LabelHeigh;
+                Widgets.DrawHighlightIfMouseover(main1);
+
+                if (Widgets.RadioButtonLabeled(main1, allTranslations.hideDoor, data.HideInDoor))
+                {
+                    data.HideInDoor = !data.HideInDoor;
+                    ReDrawPawnTexture = true;
+                }
+                main1.y += LabelHeigh;
+                Widgets.DrawHighlightIfMouseover(main1);
+                if (Widgets.RadioButtonLabeled(main1, allTranslations.hideFight, data.HideNoFight))
+                {
+                    data.HideNoFight = !data.HideNoFight;
+                    ReDrawPawnTexture = true;
+                }
+                main1.y += LabelHeigh;
+                Widgets.DrawHighlightIfMouseover(main1);
+                if (Widgets.RadioButtonLabeled(main1, allTranslations.hideBed, data.HideInBed))
+                {
+                    data.HideInBed = !data.HideInBed;
+                    ReDrawPawnTexture = true;
+                }
+                if (Widgets.RadioButtonLabeled(main1, allTranslations.hideBed, data.HideInBed))
+                {
+                    data.HideInBed = !data.HideInBed;
+                    ReDrawPawnTexture = true;
+                }
+                main1.y += LabelHeigh;
+                if (ModsConfig.OdysseyActive)
+                {
+                    Widgets.DrawHighlightIfMouseover(main1);
+                    if (Widgets.RadioButtonLabeled(main1, allTranslations.hideNonVacuum, data.HideNonVacuum))
+                    {
+                        data.HideNonVacuum = !data.HideNonVacuum;
+                        ReDrawPawnTexture = true;
+                    }
+                    main1.y += (LabelHeigh + 10f);
+                }
+                else
+                {
+                    main1.y += 10f;
+                }
+
                 if (isHeadApparel)
                 {
-                    main1.y += LabelHeigh;
-                    Widgets.DrawHighlightIfMouseover(main1);
-
-                    if (Widgets.RadioButtonLabeled(main1, allTranslations.hideDoor, data.HideInDoor))
-                    {
-                        data.HideInDoor = !data.HideInDoor;
-                        ReDrawPawnTexture = true;
-                    }
-                    main1.y += LabelHeigh;
-                    Widgets.DrawHighlightIfMouseover(main1);
-                    if (Widgets.RadioButtonLabeled(main1, allTranslations.hideFight, data.HideNoFight))
-                    {
-                        data.HideNoFight = !data.HideNoFight;
-                        ReDrawPawnTexture = true;
-                    }
-                    main1.y += LabelHeigh;
-                    Widgets.DrawHighlightIfMouseover(main1);
-                    if (Widgets.RadioButtonLabeled(main1, allTranslations.hideBed, data.HideInBed))
-                    {
-                        data.HideInBed = !data.HideInBed;
-                        ReDrawPawnTexture = true;
-                    }
-                    if (Widgets.RadioButtonLabeled(main1, allTranslations.hideBed, data.HideInBed))
-                    {
-                        data.HideInBed = !data.HideInBed;
-                        ReDrawPawnTexture = true;
-                    }
-                    main1.y += LabelHeigh;
-                    if (ModsConfig.OdysseyActive)
-                    {
-                        Widgets.DrawHighlightIfMouseover(main1);
-                        if (Widgets.RadioButtonLabeled(main1, allTranslations.hideNonVacuum, data.HideNonVacuum))
-                        {
-                            data.HideNonVacuum = !data.HideNonVacuum;
-                            ReDrawPawnTexture = true;
-                        }
-                        main1.y += (LabelHeigh + 10f);
-                    }
-                    else
-                    {
-                        main1.y += 10f;
-                    }
                     Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
                     LabelHeigh += 3f;
                     main1.height += 3f;
@@ -406,6 +408,7 @@ namespace HeadApparelTweaker
                     }
                     if (data.AdvanceMode)
                     {
+                        drawScrollBar = true;
                         main1.y += (main1.height + 2f);
                         Rect copyLoc = new Rect(main1.x, main1.y, main1.height, main1.height);
                         if (Widgets.ButtonImage(copyLoc, TexButton.Copy))
@@ -517,7 +520,20 @@ namespace HeadApparelTweaker
                             ReDrawPawnTexture = true;
                         }
                     }
+                    else
+                    {
+                        drawScrollBar = false;
+                    }
                 }
+                /*main1.y += (main1.height + 10f);
+                Widgets.DrawLineHorizontal(main1.x, main1.y - 5f, main1.width);
+                Widgets.DrawBoxSolid(main1, color);
+                GUI.Label(main1, "HAT_GLOLayer".Translate(), labelStyle);
+                main1.y += LabelHeigh + 2f;
+                if (Widgets.ButtonText(main1, "GLO_Layer".Translate()))
+                {
+
+                }*/
             }
             Widgets.EndScrollView();
             LabelHeigh = 30f;
@@ -1006,7 +1022,6 @@ namespace HeadApparelTweaker
         float unitHeight = 30f;
         List<ThingStyleDef> styles;
         bool hasStyles = false;
-        bool isHeadApparel = true;
         private int baseUnitCount = 3;
         static readonly Color color0 = new ColorInt(40, 48, 48).ToColor;
         static readonly Color color1 = new ColorInt(32, 32, 32).ToColor;
@@ -1027,15 +1042,13 @@ namespace HeadApparelTweaker
             this.height = unitHeight * baseUnitCount + 15f;
             if (def.CanBeStyled() && !def.RelevantStyleCategories.NullOrEmpty())
             {
-                this.styles = HATweakerUtility.GetStyles(def);
+                this.styles = HATweakerUtility.GetThingStyleDefs(def);
             }
             if (!styles.NullOrEmpty())
             {
                 this.hasStyles = true;
                 this.height = (unitHeight * baseUnitCount + 3f) * (styles.Count + 1) + 12f;
             }
-
-            isHeadApparel = HATweakerUtility.IsHeadApparel(def);
             if (tran == null)
             {
                 tran = SettingsWindowContents.allTranslations;
@@ -1103,67 +1116,54 @@ namespace HeadApparelTweaker
             Widgets.DrawBoxSolid(vl, color0);
             vl.x += optionWidth;
             Widgets.DrawBoxSolid(vl, color0);
-            if (isHeadApparel)
+            Widgets.DrawHighlightIfMouseover(optionRect);
+            if (Widgets.RadioButtonLabeled(optionRect, tran.noGraphic, data.NoGraphic, disable))
             {
-                Widgets.DrawHighlightIfMouseover(optionRect);
-                if (Widgets.RadioButtonLabeled(optionRect, tran.noGraphic, data.NoGraphic, disable))
-                {
-                    data.NoGraphic = !data.NoGraphic;
-                }
+                data.NoGraphic = !data.NoGraphic;
             }
-
             if (!data.NoGraphic)
             {
-                if (isHeadApparel)
-                {
-                    optionRect.x += optionWidth;
-                }
+                optionRect.x += optionWidth;
                 Widgets.DrawHighlightIfMouseover(optionRect);
                 if (Widgets.RadioButtonLabeled(optionRect, tran.noHair, data.NoHair, disable))
                 {
                     data.NoHair = !data.NoHair;
                 }
-                if (isHeadApparel)
+                optionRect.x += optionWidth;
+                Widgets.DrawHighlightIfMouseover(optionRect);
+                if (Widgets.RadioButtonLabeled(optionRect, tran.hideFight, data.HideNoFight, disable))
                 {
-                    optionRect.x += optionWidth;
-                    Widgets.DrawHighlightIfMouseover(optionRect);
-                    if (Widgets.RadioButtonLabeled(optionRect, tran.hideFight, data.HideNoFight, disable))
-                    {
-                        data.HideNoFight = !data.HideNoFight;
-                    }
-                    optionRect.x = rt.x + 10f;
+                    data.HideNoFight = !data.HideNoFight;
                 }
+                optionRect.x = rt.x + 10f;
+
                 optionRect.y += optionRect.height;
                 Widgets.DrawHighlightIfMouseover(optionRect);
                 if (Widgets.RadioButtonLabeled(optionRect, tran.noBeard, data.NoBeard, disable))
                 {
                     data.NoBeard = !data.NoBeard;
                 }
-                if (isHeadApparel)
+                optionRect.x += optionWidth;
+                Widgets.DrawHighlightIfMouseover(optionRect);
+                if (Widgets.RadioButtonLabeled(optionRect, tran.hideDoor, data.HideInDoor, disable))
                 {
-                    optionRect.x += optionWidth;
+                    data.HideInDoor = !data.HideInDoor;
+                }
+                optionRect.x += optionWidth;
+                Widgets.DrawHighlightIfMouseover(optionRect);
+                if (Widgets.RadioButtonLabeled(optionRect, tran.hideBed, data.HideInBed, disable))
+                {
+                    data.HideInBed = !data.HideInBed;
+                }
+                if (od)
+                {
+                    optionRect.x = rt.x + 10f;
+                    optionRect.y += optionRect.height;
                     Widgets.DrawHighlightIfMouseover(optionRect);
-                    if (Widgets.RadioButtonLabeled(optionRect, tran.hideDoor, data.HideInDoor, disable))
+                    if (Widgets.RadioButtonLabeled(optionRect, tran.hideNonVacuum, data.HideNonVacuum, disable))
                     {
-                        data.HideInDoor = !data.HideInDoor;
+                        data.HideNonVacuum = !data.HideNonVacuum;
                     }
-                    optionRect.x += optionWidth;
-                    Widgets.DrawHighlightIfMouseover(optionRect);
-                    if (Widgets.RadioButtonLabeled(optionRect, tran.hideBed, data.HideInBed, disable))
-                    {
-                        data.HideInBed = !data.HideInBed;
-                    }
-                    if (od)
-                    {
-                        optionRect.x = rt.x + 10f;
-                        optionRect.y += optionRect.height;
-                        Widgets.DrawHighlightIfMouseover(optionRect);
-                        if (Widgets.RadioButtonLabeled(optionRect, tran.hideNonVacuum, data.HideNonVacuum, disable))
-                        {
-                            data.HideNonVacuum = !data.HideNonVacuum;
-                        }
-                    }
-
                 }
             }
         }

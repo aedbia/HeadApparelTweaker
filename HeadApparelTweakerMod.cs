@@ -3,6 +3,7 @@ using HarmonyLib;
 using RimWorld;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using UnityEngine;
 using Verse;
 
@@ -21,18 +22,16 @@ namespace HeadApparelTweaker
                 AlienIndex = LoadedModManager.RunningModsListForReading.FindIndex(mod => mod.PackageIdPlayerFacing == "erdelf.HumanoidAlienRaces.dev");
             }
             Harmony harmony = new Harmony(this.Content.PackageIdPlayerFacing);
-            HarmonyPatchHAT.PatchAllByHAT(harmony);
+            HarmonyPatchA5.PatchAllByHAT(harmony);
             if (AlienIndex != -1)
             {
-                new HarmonyPatchHAT.HarmonyPatchAlienRace(harmony);
+                new HarmonyPatchA5.HarmonyPatchAlienRace(harmony);
             }
         }
         public override void DoSettingsWindowContents(Rect inRect)
         {
             SettingsWindowContents.DoSettingsWindowContents(inRect);
         }
-
-
 
         public override string SettingsCategory()
         {
@@ -72,6 +71,7 @@ namespace HeadApparelTweaker
         public static List<ThingDef> HeadApparel = new List<ThingDef>();
         internal static Texture texture = null;
         internal static Texture2D modUI = ContentFinder<Texture2D>.Get("UI/Buttons/body_apparel_ui");
+        internal static bool Initialized = false;
         //public static Dictionary<string, DrawData> drawDataCache = new Dictionary<string, DrawData>();
         public static HATweakerUtility.AlienCompatible alienCompatible = null;
         public static List<string> Layers
@@ -103,13 +103,13 @@ namespace HeadApparelTweaker
             {
                 alienCompatible = new HATweakerUtility.AlienCompatible();
             }
+            Initialized = true;
         }
-
 
         public static List<ThingDef> GetAllOverHead()
         {
             //List<ThingDef> HeadApparel = DefDatabase<ThingDef>.AllDefs.Where(x => x.IsApparel && x.apparel.LastLayer != null && Layers.Contains(x.apparel.LastLayer.defName)).ToList();
-            List<ThingDef> BodyHeadApparel = DefDatabase<ThingDef>.AllDefs.Where(x => x.IsApparel &&
+            List<ThingDef> BodyHeadApparel = DefDatabase<ThingDef>.AllDefs.Where(x => x != null && x.IsApparel &&
             (((!x.apparel.bodyPartGroups.NullOrEmpty()) && (x.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.FullHead) || x.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.UpperHead) || x.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.Eyes)))
             || ((!x.apparel.layers.NullOrEmpty()) && x.apparel.layers.Any(a => Layers.Contains(a.defName))))).ToList();
             return BodyHeadApparel;
@@ -119,6 +119,24 @@ namespace HeadApparelTweaker
 
     public static class HATweakerUtility
     {
+        internal static List<ThingStyleDef> GetThingStyleDefs(ThingDef def)
+        {
+            if (def == null || !def.CanBeStyled())
+            {
+                return new List<ThingStyleDef>();
+            }
+            List<ThingStyleDef> styles = DefDatabase<StyleCategoryDef>.AllDefs
+                                .SelectMany(sc => sc.thingDefStyles?
+                                    .Where(ts => ts.StyleDef != null && ts.ThingDef == def)
+                                    .Select(ts => ts.StyleDef) ?? Enumerable.Empty<ThingStyleDef>())
+                                .ToList();
+            var random = def.randomStyle?.Select(a => a.StyleDef).Where(a=>a!=null);
+            if (random != null && random.Any())
+            {
+                styles.AddRangeUnique(random);
+            }
+            return styles;
+        }
         internal static void DrawPawnCacheWithApparel(Pawn pawn, Apparel apparel, Vector2 size, Rot4 direction, out Texture texture)
         {
             if (PawnTextureCache.GetPawnTextureCache(pawn, out var cache))
@@ -146,17 +164,6 @@ namespace HeadApparelTweaker
             }
         }
 
-        internal static List<ThingStyleDef> GetStyles(ThingDef def)
-        {
-            if (def.RelevantStyleCategories.NullOrEmpty())
-            {
-                return new List<ThingStyleDef>();
-            }
-            return def.RelevantStyleCategories.SelectMany(a =>
-            {
-                return a.thingDefStyles.Where(b => b.ThingDef == def).Select(c => c.StyleDef);
-            }).ToList();
-        }
         internal static GUIStyle GetLabelStyle(TextAnchor anchor)
         {
             return new GUIStyle(Verse.Text.CurFontStyle)

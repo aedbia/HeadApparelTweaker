@@ -1,12 +1,8 @@
 ﻿using ABEasyLib.ABExtensions;
 using HarmonyLib;
 using RimWorld;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using Verse;
 using static Verse.DrawData;
@@ -47,7 +43,7 @@ namespace HeadApparelTweaker
 
         public static void SingleInit(ThingDef def)
         {
-            if (!def.IsApparel && def.apparel == null)
+            if (!def.IsApparel || def.apparel == null || def.defName.NullOrEmpty())
             {
                 return;
             }
@@ -57,6 +53,7 @@ namespace HeadApparelTweaker
             }
             bool a = false;
             bool b = false;
+            string defName = def.defName;
             bool c = !def.apparel.renderSkipFlags.NullOrEmpty();
             if (c)
             {
@@ -71,48 +68,73 @@ namespace HeadApparelTweaker
                     a = b || def.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.UpperHead);
                 }
             }
-            if (!SettingData.ContainsKey(def.defName) || SettingData[def.defName] == null)
+            if (!SettingData.ContainsKey(defName) || SettingData[defName] == null)
             {
-                SettingData.SetOrAdd(def.defName, new HATSettingData()
+                SettingData.SetOrAdd(defName, new HATSettingData()
                 {
                     NoHair = a,
                     NoBeard = b,
                 });
 
             }
-            SettingData[def.defName].def = def;
-            SettingData[def.defName].DefaultNoHair = a;
-            SettingData[def.defName].DefaultNoBeard = b;
-            SettingData[def.defName].DefaultNoEyes = c && b;
-            SettingData[def.defName].GetDrawData();
-            if (ModsConfig.IdeologyActive && def.CanBeStyled() && !def.RelevantStyleCategories.NullOrEmpty())
+            SettingData[defName].def = def;
+            SettingData[defName].DefaultNoHair = a;
+            SettingData[defName].DefaultNoBeard = b;
+            SettingData[defName].DefaultNoEyes = c && b;
+            SettingData[defName].GetDrawData();
+            if (ModsConfig.IdeologyActive)
             {
-                if (SettingData[def.defName].ChildrenData == null)
+                List<ThingStyleDef> styles = HATweakerUtility.GetThingStyleDefs(def);
+                if (styles.NullOrEmpty())
                 {
-                    SettingData[def.defName].ChildrenData = new Dictionary<string, HATSettingData>();
+                    return;
                 }
-                List<ThingStyleDef> styles = HATweakerUtility.GetStyles(def);
-                if (!styles.NullOrEmpty())
+                if (SettingData[defName].ChildrenData == null)
                 {
-                    foreach (ThingStyleDef style in styles)
+                    SettingData[defName].ChildrenData = new Dictionary<string, HATSettingData>();
+                }
+                for (int i = 0; i < styles.Count; i++)
+                {
+                    string styleName = styles[i].defName;
+
+                    if (!SettingData[defName].ChildrenData.ContainsKey(styleName) || SettingData[defName].ChildrenData[styleName] == null)
                     {
-                        if (!SettingData[def.defName].ChildrenData.ContainsKey(style.defName) || SettingData[def.defName].ChildrenData[style.defName] == null)
+                        SettingData[defName].ChildrenData.SetOrAdd(styleName, new HATSettingData()
                         {
-                            SettingData[def.defName].ChildrenData.SetOrAdd(style.defName, new HATSettingData()
-                            {
-                                NoHair = a,
-                                NoBeard = b
-                            });
-                        }
-                        SettingData[def.defName].ChildrenData[style.defName].def = def;
-                        SettingData[def.defName].ChildrenData[style.defName].DefaultNoHair = a;
-                        SettingData[def.defName].ChildrenData[style.defName].DefaultNoBeard = b;
-                        SettingData[def.defName].ChildrenData[style.defName].DefaultNoEyes = c && b;
-                        SettingData[def.defName].ChildrenData[style.defName].GetDrawData();
+                            NoHair = a,
+                            NoBeard = b
+                        });
                     }
+                    SettingData[defName].ChildrenData[styleName].def = def;
+                    SettingData[defName].ChildrenData[styleName].DefaultNoHair = a;
+                    SettingData[defName].ChildrenData[styleName].DefaultNoBeard = b;
+                    SettingData[defName].ChildrenData[styleName].DefaultNoEyes = c && b;
+                    SettingData[defName].ChildrenData[styleName].GetDrawData();
                 }
             }
         }
+
+        public static bool TryGetApparelDataWithPawn(Pawn pawn, Apparel apparel, out HATSettingData settingData)
+        {
+            if (!HATweakerSetting.SettingData.TryGetValue(apparel.def.defName, out HATweakerSetting.HATSettingData data))
+            {
+                settingData = null;
+                return false;
+            }
+
+            if (ModsConfig.IdeologyActive && !data.UseDefault && !data.ChildrenData.NullOrEmpty()
+                && apparel.StyleDef != null && data.ChildrenData.TryGetValue(apparel.StyleDef.defName, out HATweakerSetting.HATSettingData styleData)
+                && !styleData.UseDefault)
+            {
+                settingData = styleData;
+            }
+            else
+            {
+                settingData = data;
+            }
+            return true;
+        }
+
         public class HATSettingData : IExposable
         {
             internal ThingDef def;
@@ -312,10 +334,6 @@ namespace HeadApparelTweaker
                 {
                     return false;
                 }
-                if (HideInBed && pawn.InBed())
-                {
-                    return false;
-                }
                 else
                 {
                     if (HideNoFight && pawn.Drafted)
@@ -325,7 +343,8 @@ namespace HeadApparelTweaker
                     var map = pawn.MapHeld;
                     IntVec3 pos = pawn.Position;
                     bool canWork = map != null && pos.InBounds(map);
-                    if (ModsConfig.OdysseyActive && HideNonVacuum && canWork && pos.GetVacuum(map) >= 0.5f)
+                    bool odyWork = ModsConfig.OdysseyActive && HideNonVacuum && canWork && map.Biome.inVacuum;
+                    if (odyWork && pos.GetVacuum(map) >= 0.5f)
                     {
                         return true;
                     }
@@ -333,10 +352,18 @@ namespace HeadApparelTweaker
                     {
                         return canWork && pos.UsesOutdoorTemperature(map);
                     }
-                    return !(HideInDoor || HideNoFight || HideNonVacuum);
+                    return !(HideInDoor || HideNoFight || odyWork);
                 }
             }
 
+            public bool CanDrawInBedOrNotInBed(Pawn pawn)
+            {
+                if (HideInBed && pawn.InBed())
+                {
+                    return false;
+                }
+                return true;
+            }
             public Vector3 getOffset(Rot4 headFace)
             {
                 Vector2 offset = Vector2.zero;
