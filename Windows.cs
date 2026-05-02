@@ -887,7 +887,7 @@ namespace HeadApparelTweaker
             rect00.x += wi / 2;
             Widgets.Label(rect00, "With_Beard".Translate());
             Widgets.DrawLineVertical(rect00.x + rect00.width, rect0.y, LabelHeigh + 5);
-            if (dict != null && dict.Count != 0)
+            if (!dict.NullOrEmpty())
             {
                 Rect outRect = new Rect(rect0.x + 5f, rect0.y + LabelHeigh + 10f, rect0.width - 10f, rect0.height - LabelHeigh - 20f);
                 Rect viewRect = new Rect(0, 0, outRect.width - 26f, (LabelHeigh + 5f) * dict.Count + 3f);
@@ -974,8 +974,8 @@ namespace HeadApparelTweaker
                 {
                     quickSearch.noResultsMatched = false;
                 }
+                Widgets.EndScrollView();
             }
-            Widgets.EndScrollView();
         }
         private static void Reset()
         {

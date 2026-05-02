@@ -18,6 +18,9 @@ namespace HeadApparelTweaker
         public static List<string> WithHair = new List<string>();
         public static List<string> WithBeard = new List<string>();
         internal static float BaseLayerOffset = 0;
+        public static HashSet<string> DraftHides = new HashSet<string>();
+        public static HashSet<string> BedHides = new HashSet<string>();
+        public static HashSet<string> InDoorHides = new HashSet<string>();
 
         public override void ExposeData()
         {
@@ -27,6 +30,37 @@ namespace HeadApparelTweaker
             Scribe_Collections.Look(ref WithBeard, "WithBeard");
             ABScribeExtensions.Look(ref BaseLayerOffset, "BaseLayerOffset", 4);
             ABScribeExtensions.LookDeep(ref SettingData, "HATData");
+
+        }
+
+        public static void MakeHideLists()
+        {
+            HashSet<string> hideList1 = new HashSet<string>();
+            HashSet<string> hideList2 = new HashSet<string>();
+            HashSet<string> hideList3 = new HashSet<string>();
+            foreach (string key in SettingData.Keys)
+            {
+                HATSettingData data = SettingData[key];
+                if (data == null)
+                {
+                    continue;
+                }
+                if (data.HideNoFight)
+                {
+                    hideList1.Add(key);
+                }
+                if (data.HideInBed)
+                {
+                    hideList2.Add(key);
+                }
+                if (data.HideInDoor)
+                {
+                    hideList3.Add(key);
+                }
+            }
+            DraftHides = hideList1;
+            BedHides = hideList2;
+            InDoorHides = hideList3;
         }
         public static void InitSetting()
         {
@@ -132,6 +166,15 @@ namespace HeadApparelTweaker
             {
                 settingData = data;
             }
+            return true;
+        }
+
+        public static bool NeedRedrawApparels()
+        {
+            /*if ()
+            {
+
+            }*/
             return true;
         }
 

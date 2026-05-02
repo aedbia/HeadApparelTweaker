@@ -42,6 +42,7 @@ namespace HeadApparelTweaker
         {
             SettingsWindowContents.WriteSettings();
             base.WriteSettings();
+            HATweakerSetting.MakeHideLists();
         }
 
         public static void ResolveAllApparelGraphics()
@@ -78,7 +79,8 @@ namespace HeadApparelTweaker
         {
             get
             {
-                return HeadLayerListDefOf.AllHeadLayerList.HeadLayerList;
+                var headLayerList = DefDatabase<HeadLayerListDef>.AllDefs;
+                return headLayerList.Where(a=>!a.HeadLayerList.NullOrEmpty()).SelectMany(a=>a.HeadLayerList).ToList();
             }
         }
         public static bool IsColonist(Pawn pawn)
@@ -108,7 +110,6 @@ namespace HeadApparelTweaker
 
         public static List<ThingDef> GetAllOverHead()
         {
-            //List<ThingDef> HeadApparel = DefDatabase<ThingDef>.AllDefs.Where(x => x.IsApparel && x.apparel.LastLayer != null && Layers.Contains(x.apparel.LastLayer.defName)).ToList();
             List<ThingDef> BodyHeadApparel = DefDatabase<ThingDef>.AllDefs.Where(x => x != null && x.IsApparel &&
             (((!x.apparel.bodyPartGroups.NullOrEmpty()) && (x.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.FullHead) || x.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.UpperHead) || x.apparel.bodyPartGroups.Contains(BodyPartGroupDefOf.Eyes)))
             || ((!x.apparel.layers.NullOrEmpty()) && x.apparel.layers.Any(a => Layers.Contains(a.defName))))).ToList();
@@ -260,12 +261,6 @@ namespace HeadApparelTweaker
                 }
             }
         }
-    }
-
-    [DefOf]
-    public static class HeadLayerListDefOf
-    {
-        public static HeadLayerListDef AllHeadLayerList;
     }
 
     public class HeadLayerListDef : Def

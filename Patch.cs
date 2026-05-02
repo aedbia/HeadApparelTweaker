@@ -49,7 +49,6 @@ namespace HeadApparelTweaker
                     debug.Add("0 Patch ProcessApparel");
                 }
             }
-
             MethodInfo hv = AccessTools.Method(typeof(PawnRenderNodeWorker_Apparel_Head), nameof(PawnRenderNodeWorker_Apparel_Head.CanDrawNow));
             if (hv != null)
             {
@@ -77,7 +76,7 @@ namespace HeadApparelTweaker
             if (setPosition != null)
             {
                 harmony.Patch(setPosition, transpiler: new HarmonyMethod(typeof(HarmonyPatchA5), nameof(TranSetPosition)));
-                debug.Add("5 Patch PositionSetter");
+                debug.Add("4 Patch PositionSetter");
             }
 
             if (debug.Count < 5)
@@ -249,11 +248,12 @@ namespace HeadApparelTweaker
         }
         public static bool CanDrawInBed(PawnDrawParms parms, PawnRenderNode n)
         {
-            if (parms.pawn == null || n.apparel == null) return false;
+            /*if (parms.pawn == null || n.apparel == null) return false;
             if (parms.bed == null) return true;
 
             return HATweakerSetting.TryGetApparelDataWithPawn(parms.pawn, n.apparel, out var data)
-                && data.CanDrawInBedOrNotInBed(parms.pawn);
+                && data.CanDrawInBedOrNotInBed(parms.pawn);*/
+            return true;
         }
 
         public static bool PreProcessApparel(Pawn pawn, PawnRenderTree tree, Apparel ap, PawnRenderNode headApparelNode, PawnRenderNode bodyApparelNode, Dictionary<PawnRenderNode, int> layerOffsets, ref IEnumerable<ValueTuple<PawnRenderNode, PawnRenderNode>> __result)
@@ -287,7 +287,7 @@ namespace HeadApparelTweaker
                 }
                 if (dis)
                 {
-                    return CanDisplay(ap, pawn, false);
+                    return CanDisplay(ap, pawn);
                 }
                 else
                 {
@@ -328,7 +328,7 @@ namespace HeadApparelTweaker
                 or = origin;
             }
             List<Apparel> a = or == null ? new List<Apparel>() : new List<Apparel>(or);
-            a.RemoveAll(b => !CanDisplay(b, pawn, true));
+            a.RemoveAll(b => !CanDisplay(b, pawn));
             return a;
         }
 
@@ -392,19 +392,11 @@ namespace HeadApparelTweaker
             }
         }
 
-        private static bool CanDisplay(Apparel ap, Pawn pawn, bool withBed)
+        private static bool CanDisplay(Apparel ap, Pawn pawn)
         {
             if (HATweakerSetting.TryGetApparelDataWithPawn(pawn, ap, out HATweakerSetting.HATSettingData data))
             {
-                if (withBed)
-                {
-                    return data.CanDrawInBedOrNotInBed(pawn) && data.CanDraw(pawn);
-                }
-                else
-                {
-                    return data.CanDraw(pawn);
-                }
-
+                return data.CanDrawInBedOrNotInBed(pawn) && data.CanDraw(pawn);
             }
             return true;
         }
@@ -434,34 +426,50 @@ namespace HeadApparelTweaker
 
             if (ApplyGraphicData(pawn))
             {
-                pawn.apparel.Notify_ApparelChanged();
+                if (HATweakerSetting.NeedRedrawApparels())
+                {
+                    pawn.apparel.Notify_ApparelChanged();
+                }
             }
         }
 
+        /*public static void IsPositionChange(Thing thing, IntVec3 ago, IntVec3 now)
+        {
+            long bef = System.DateTime.Now.Millisecond;
+            IsPositionChange0(thing, ago, now);
+            Log.Warning($"IsPositionChange:{System.DateTime.Now.Millisecond - bef}");
+        }*/
         public static void IsPositionChange(Thing thing, IntVec3 ago, IntVec3 now)
         {
             if (!(thing is Pawn pawn) || ago == now || pawn.apparel?.WornApparel == null) return;
-
             Map map = pawn.MapHeld;
             if (map == null || !ApplyGraphicData(pawn))
                 return;
-
             if (!ago.InBounds(map) || !now.InBounds(map)) return;
-
             bool a = ago.UsesOutdoorTemperature(map);
             bool b = now.UsesOutdoorTemperature(map);
-
             if (a != b)
             {
                 pawn.apparel.Notify_ApparelChanged();
                 return;
             }
-
+            bool a0 = ago.GetThingList(map).Any(obj => obj is Building_Bed);
+            bool b0 = now.GetThingList(map).Any(obj => obj is Building_Bed);
+            if (a0 != b0)
+            {
+                pawn.apparel.Notify_ApparelChanged();
+                return;
+            }
+            else if (a0 && b0 && !pawn.InBed())
+            {
+                pawn.apparel.Notify_ApparelChanged();
+                return;
+            }
             if (!ModsConfig.OdysseyActive) return;
 
-            bool a0 = ago.GetVacuum(map) == 0;
-            bool b0 = now.GetVacuum(map) == 0;
-            if (a0 != b0)
+            bool a1 = ago.GetVacuum(map) == 0;
+            bool b1 = now.GetVacuum(map) == 0;
+            if (a1 != b1)
             {
                 pawn.apparel.Notify_ApparelChanged();
             }
@@ -470,7 +478,6 @@ namespace HeadApparelTweaker
 
         public class HarmonyPatchAlienRace
         {
-            //private static Dictionary<string, string> raceName = new Dictionary<string, string>();
             public HarmonyPatchAlienRace(Harmony harmony)
             {
                 if (HATweakerMod.AlienIndex != -1)
