@@ -432,47 +432,11 @@ namespace HeadApparelTweaker
                 }
             }
         }
-
-        /*public static void IsPositionChange(Thing thing, IntVec3 ago, IntVec3 now)
-        {
-            long bef = System.DateTime.Now.Millisecond;
-            IsPositionChange0(thing, ago, now);
-            Log.Warning($"IsPositionChange:{System.DateTime.Now.Millisecond - bef}");
-        }*/
+        
         public static void IsPositionChange(Thing thing, IntVec3 ago, IntVec3 now)
         {
-            if (!(thing is Pawn pawn) || ago == now || pawn.apparel?.WornApparel == null) return;
-            Map map = pawn.MapHeld;
-            if (map == null || !ApplyGraphicData(pawn))
-                return;
-            if (!ago.InBounds(map) || !now.InBounds(map)) return;
-            bool a = ago.UsesOutdoorTemperature(map);
-            bool b = now.UsesOutdoorTemperature(map);
-            if (a != b)
-            {
-                pawn.apparel.Notify_ApparelChanged();
-                return;
-            }
-            bool a0 = ago.GetThingList(map).Any(obj => obj is Building_Bed);
-            bool b0 = now.GetThingList(map).Any(obj => obj is Building_Bed);
-            if (a0 != b0)
-            {
-                pawn.apparel.Notify_ApparelChanged();
-                return;
-            }
-            else if (a0 && b0 && !pawn.InBed())
-            {
-                pawn.apparel.Notify_ApparelChanged();
-                return;
-            }
-            if (!ModsConfig.OdysseyActive) return;
-
-            bool a1 = ago.GetVacuum(map) == 0;
-            bool b1 = now.GetVacuum(map) == 0;
-            if (a1 != b1)
-            {
-                pawn.apparel.Notify_ApparelChanged();
-            }
+            if (!(thing is Pawn pawn) || ago == now || pawn.apparel?.WornApparel == null|| !ApplyGraphicData(pawn)) return;
+            pawn.Notify_PositionChanged(ago, now);
         }
 
 

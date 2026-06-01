@@ -1,9 +1,10 @@
 ﻿using ABEasyLib;
 using HarmonyLib;
 using RimWorld;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
+using System.Threading.Tasks;
 using UnityEngine;
 using Verse;
 
@@ -80,7 +81,7 @@ namespace HeadApparelTweaker
             get
             {
                 var headLayerList = DefDatabase<HeadLayerListDef>.AllDefs;
-                return headLayerList.Where(a=>!a.HeadLayerList.NullOrEmpty()).SelectMany(a=>a.HeadLayerList).ToList();
+                return headLayerList.Where(a => !a.HeadLayerList.NullOrEmpty()).SelectMany(a => a.HeadLayerList).ToList();
             }
         }
         public static bool IsColonist(Pawn pawn)
@@ -131,7 +132,7 @@ namespace HeadApparelTweaker
                                     .Where(ts => ts.StyleDef != null && ts.ThingDef == def)
                                     .Select(ts => ts.StyleDef) ?? Enumerable.Empty<ThingStyleDef>())
                                 .ToList();
-            var random = def.randomStyle?.Select(a => a.StyleDef).Where(a=>a!=null);
+            var random = def.randomStyle?.Select(a => a.StyleDef).Where(a => a != null);
             if (random != null && random.Any())
             {
                 styles.AddRangeUnique(random);
@@ -186,6 +187,58 @@ namespace HeadApparelTweaker
             Apparel thing = (Apparel)ThingMaker.MakeThing(def, stuff);
             return thing;
             //(Apparel)ThingMaker.MakeThing(def, stuff);
+        }
+
+        internal static void Notify_PositionChanged(this Pawn pawn, IntVec3 ago, IntVec3 now)
+        {
+            try
+            {
+                Task.Run(() =>
+                    {
+                        if (NeedRedrawGraphics(pawn, ago, now))
+                        {
+                            pawn.apparel.Notify_ApparelChanged();
+                        }
+                    }
+                );
+            }
+            catch (Exception e)
+            {
+                Log.Error(e.Message);
+            }
+        }
+
+        private static bool NeedRedrawGraphics(Pawn pawn, IntVec3 ago, IntVec3 now)
+        {
+            Map map = pawn.MapHeld;
+            if (map == null)
+                return false;
+            if (!ago.InBounds(map) || !now.InBounds(map)) return false;
+            bool a = ago.UsesOutdoorTemperature(map);
+            bool b = now.UsesOutdoorTemperature(map);
+            if (a != b)
+            {
+                return true;
+            }
+            bool a0 = ago.GetThingList(map).Any(obj => obj is Building_Bed);
+            bool b0 = now.GetThingList(map).Any(obj => obj is Building_Bed);
+            if (a0 != b0)
+            {
+                return true;
+            }
+            else if (a0 && b0 && !pawn.InBed())
+            {
+                return true;
+            }
+            if (!ModsConfig.OdysseyActive) return false;
+
+            bool a1 = ago.GetVacuum(map) == 0;
+            bool b1 = now.GetVacuum(map) == 0;
+            if (a1 != b1)
+            {
+                return true;
+            }
+            return false;
         }
         public class AlienCompatible
         {
