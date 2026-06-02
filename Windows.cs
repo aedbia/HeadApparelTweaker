@@ -800,6 +800,10 @@ namespace HeadApparelTweaker
                 }
 
             }
+            one.y += one.height + 5f;
+            Widgets.CheckboxLabeled(one, allTranslations.EnableExperimental, ref HATweakerSetting.enableExperimental);
+            TooltipHandler.TipRegion(one, allTranslations.EnableExperimentalTip);
+           
         }
 
         private static void QuickSetting(List<ThingDef> list, int a, bool on)

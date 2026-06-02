@@ -52,6 +52,8 @@ namespace HeadApparelTweaker
         internal readonly string onColonist;
         internal readonly string COLCache;
         internal readonly string pgta;
+        internal readonly string EnableExperimentalTip;
+        internal readonly string EnableExperimental;
 
         public TranslationOfHATSetting()
         {
@@ -98,6 +100,8 @@ namespace HeadApparelTweaker
             onColonist = "Only_Colonist".Translate();
             COLCache = "useIsColonistCache".Translate();
             pgta = "pgta".Translate();
+            EnableExperimentalTip = "Enable_Experimental_Tip".Translate();
+            EnableExperimental = "Enable_Experimental".Translate();
         }
     }
 }

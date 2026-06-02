@@ -191,28 +191,37 @@ namespace HeadApparelTweaker
 
         internal static void Notify_PositionChanged(this Pawn pawn, IntVec3 ago, IntVec3 now)
         {
-
-            Task.Run(() =>
-                {
-                    try
+            if (HATweakerSetting.enableExperimental)
+            {
+                Task.Run(() =>
                     {
-                        if (NeedRedrawGraphics(pawn, ago, now))
+                        try
                         {
-                            pawn.Drawer?.renderer?.SetAllGraphicsDirty();
+                            if (NeedRedrawGraphics(pawn, ago, now))
+                            {
+                                pawn.Drawer?.renderer?.SetAllGraphicsDirty();
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Error(e.Message);
                         }
                     }
-                    catch (Exception e)
-                    {
-                        Log.Error(e.Message);
-                    }
+                );
+            }
+            else
+            {
+                if (NeedRedrawGraphics(pawn, ago, now))
+                {
+                    pawn.Drawer?.renderer?.SetAllGraphicsDirty();
                 }
-            );
+            }
 
         }
 
         private static bool NeedRedrawGraphics(Pawn pawn, IntVec3 ago, IntVec3 now)
         {
-            if (pawn == null|| pawn.Spawned)
+            if (pawn == null || !pawn.Spawned)
             {
                 return false;
             }

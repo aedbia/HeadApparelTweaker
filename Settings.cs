@@ -21,11 +21,13 @@ namespace HeadApparelTweaker
         public static HashSet<string> DraftHides = new HashSet<string>();
         public static HashSet<string> BedHides = new HashSet<string>();
         public static HashSet<string> InDoorHides = new HashSet<string>();
+        internal static bool enableExperimental = false;
 
         public override void ExposeData()
         {
             Scribe_Values.Look(ref WorkOnColonist, "WorkOnColonist", true);
             Scribe_Values.Look(ref useIsColonistCache, "useIsColonistCache", false);
+            Scribe_Values.Look(ref enableExperimental, "enableExperimental", false);
             Scribe_Collections.Look(ref WithHair, "WithHair");
             Scribe_Collections.Look(ref WithBeard, "WithBeard");
             ABScribeExtensions.Look(ref BaseLayerOffset, "BaseLayerOffset", 4);
