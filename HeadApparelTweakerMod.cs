@@ -191,25 +191,31 @@ namespace HeadApparelTweaker
 
         internal static void Notify_PositionChanged(this Pawn pawn, IntVec3 ago, IntVec3 now)
         {
-            try
-            {
-                Task.Run(() =>
+
+            Task.Run(() =>
+                {
+                    try
                     {
                         if (NeedRedrawGraphics(pawn, ago, now))
                         {
-                            pawn.apparel.Notify_ApparelChanged();
+                            pawn.Drawer?.renderer?.SetAllGraphicsDirty();
                         }
                     }
-                );
-            }
-            catch (Exception e)
-            {
-                Log.Error(e.Message);
-            }
+                    catch (Exception e)
+                    {
+                        Log.Error(e.Message);
+                    }
+                }
+            );
+
         }
 
         private static bool NeedRedrawGraphics(Pawn pawn, IntVec3 ago, IntVec3 now)
         {
+            if (pawn == null|| pawn.Spawned)
+            {
+                return false;
+            }
             Map map = pawn.MapHeld;
             if (map == null)
                 return false;

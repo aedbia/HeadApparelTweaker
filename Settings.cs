@@ -377,6 +377,10 @@ namespace HeadApparelTweaker
                 {
                     return false;
                 }
+                else if (HideInBed&&pawn.InBed())
+                {
+                    return false;
+                }
                 else
                 {
                     if (HideNoFight && pawn.Drafted)
@@ -399,14 +403,6 @@ namespace HeadApparelTweaker
                 }
             }
 
-            public bool CanDrawInBedOrNotInBed(Pawn pawn)
-            {
-                if (HideInBed && pawn.InBed())
-                {
-                    return false;
-                }
-                return true;
-            }
             public Vector3 getOffset(Rot4 headFace)
             {
                 Vector2 offset = Vector2.zero;

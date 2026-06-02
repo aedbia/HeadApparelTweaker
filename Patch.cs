@@ -396,7 +396,7 @@ namespace HeadApparelTweaker
         {
             if (HATweakerSetting.TryGetApparelDataWithPawn(pawn, ap, out HATweakerSetting.HATSettingData data))
             {
-                return data.CanDrawInBedOrNotInBed(pawn) && data.CanDraw(pawn);
+                return data.CanDraw(pawn);
             }
             return true;
         }
@@ -426,16 +426,13 @@ namespace HeadApparelTweaker
 
             if (ApplyGraphicData(pawn))
             {
-                if (HATweakerSetting.NeedRedrawApparels())
-                {
-                    pawn.apparel.Notify_ApparelChanged();
-                }
+                pawn.Drawer?.renderer?.SetAllGraphicsDirty();
             }
         }
-        
+
         public static void IsPositionChange(Thing thing, IntVec3 ago, IntVec3 now)
         {
-            if (!(thing is Pawn pawn) || ago == now || pawn.apparel?.WornApparel == null|| !ApplyGraphicData(pawn)) return;
+            if (!(thing is Pawn pawn) || ago == now || pawn.apparel?.WornApparel == null || !ApplyGraphicData(pawn)) return;
             pawn.Notify_PositionChanged(ago, now);
         }
 

@@ -1005,7 +1005,7 @@ namespace HeadApparelTweaker
                 {
                     if (pawn.apparel != null && pawn.apparel.AnyApparel)
                     {
-                        pawn.apparel.Notify_ApparelChanged();
+                        pawn.Drawer?.renderer?.SetAllGraphicsDirty();
                     }
                 }
             }
